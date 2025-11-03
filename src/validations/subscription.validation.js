@@ -22,6 +22,25 @@ const upsertSubscription = {
     .required(),
 };
 
+const checkoutSession = {
+  body: Joi.object()
+    .keys({
+      priceId: Joi.string().required(),
+      cancelUrl: Joi.string().uri().allow(null, ''),
+    })
+    .required(),
+};
+
+const billingPortal = {
+  body: Joi.object()
+    .keys({
+      returnUrl: Joi.string().uri().allow(null, ''),
+    })
+    .optional(),
+};
+
 module.exports = {
   upsertSubscription,
+  checkoutSession,
+  billingPortal,
 };

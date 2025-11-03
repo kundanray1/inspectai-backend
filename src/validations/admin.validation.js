@@ -17,7 +17,40 @@ const updateSetting = {
   body: Joi.object().unknown(true).required(),
 };
 
+const createPlan = {
+  body: Joi.object()
+    .keys({
+      slug: Joi.string().trim(),
+      name: Joi.string().required(),
+      description: Joi.string().allow('', null),
+      priceMonthly: Joi.number().allow(null),
+      currency: Joi.string().default('usd'),
+      reportLimit: Joi.number().integer().min(0).default(0),
+      features: Joi.array().items(Joi.string()).default([]),
+      stripePriceId: Joi.string().allow('', null),
+      trialDays: Joi.number().integer().min(0).default(0),
+      isPublic: Joi.boolean().default(false),
+      isCustom: Joi.boolean().default(false),
+      organizationId: Joi.string().allow('', null),
+      active: Joi.boolean().default(true),
+    })
+    .required(),
+};
+
+const assignPlan = {
+  params: Joi.object().keys({
+    planId: Joi.string().required(),
+  }),
+  body: Joi.object()
+    .keys({
+      organizationId: Joi.string().required(),
+    })
+    .required(),
+};
+
 module.exports = {
   listAdminUsers,
   updateSetting,
+  createPlan,
+  assignPlan,
 };

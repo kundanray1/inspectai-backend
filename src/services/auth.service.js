@@ -6,6 +6,7 @@ const Token = require('../models/token.model');
 const ApiError = require('../utils/ApiError');
 const { tokenTypes } = require('../config/tokens');
 const Subscription = require('../models/subscription.model');
+const planService = require('./plan.service');
 
 /**
  * Login with username and password
@@ -109,14 +110,20 @@ const createInspectUserAccount = async ({ email, name, password }) => {
     organizationId,
   });
 
+  const trialPlan = (await planService.getPlanBySlug('trial')) || {
+    slug: 'trial',
+    reportLimit: 10,
+    trialDays: 7,
+  };
+
   await Subscription.create({
     organizationId,
     stripeCustomerId: `demo_${organizationId}`,
-    plan: 'starter',
+    plan: trialPlan.slug,
     status: 'trialing',
-    trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    trialEndsAt: new Date(Date.now() + (trialPlan.trialDays || 7) * 24 * 60 * 60 * 1000),
     seats: 1,
-    reportLimit: 1,
+    reportLimit: trialPlan.reportLimit || 10,
     usage: [],
   });
 

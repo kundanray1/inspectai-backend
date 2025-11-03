@@ -9,4 +9,12 @@ router.get('/dashboard', auth('viewAdminDashboard'), adminController.getDashboar
 router.get('/users', auth('viewAdminDashboard'), validate(adminValidation.listAdminUsers), adminController.listUsers);
 router.get('/settings', auth('viewSettings'), adminController.getSettings);
 router.put('/settings/:key', auth('manageSettings'), validate(adminValidation.updateSetting), adminController.updateSetting);
+router.get('/plans', auth('viewAdminDashboard'), adminController.listPlans);
+router.post('/plans', auth('manageSettings'), validate(adminValidation.createPlan), adminController.createPlan);
+router.post(
+  '/plans/:planId/assign',
+  auth('manageSettings'),
+  validate(adminValidation.assignPlan),
+  adminController.assignPlan
+);
 module.exports = router;

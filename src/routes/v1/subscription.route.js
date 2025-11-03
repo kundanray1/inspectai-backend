@@ -6,6 +6,7 @@ const subscriptionValidation = require('../../validations/subscription.validatio
 
 const router = express.Router();
 
+router.get('/plans', auth(), subscriptionController.listPlans);
 router.get('/:organizationId', auth(), subscriptionController.getSubscription);
 
 router.put(
@@ -16,5 +17,19 @@ router.put(
 );
 
 router.post('/:organizationId/upgrade', auth(), subscriptionController.upgradeSubscription);
+router.post(
+  '/:organizationId/checkout',
+  auth(),
+  validate(subscriptionValidation.checkoutSession),
+  subscriptionController.checkout
+);
+router.post(
+  '/:organizationId/portal',
+  auth(),
+  validate(subscriptionValidation.billingPortal),
+  subscriptionController.openPortal
+);
+router.post('/:organizationId/cancel', auth(), subscriptionController.cancelSubscription);
+router.post('/:organizationId/resume', auth(), subscriptionController.resumeSubscription);
 
 module.exports = router;

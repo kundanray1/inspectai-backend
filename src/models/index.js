@@ -10,3 +10,5 @@ module.exports.InspectionSchemas = inspectionExports;
 module.exports.Report = require('./report.model');
 module.exports.Subscription = require('./subscription.model');
 module.exports.Setting = require('./setting.model');
+module.exports.NotificationPreference = require('./notificationPreference.model');
+module.exports.Plan = require('./plan.model');

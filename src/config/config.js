@@ -28,6 +28,10 @@ const envVarsSchema = Joi.object()
     SUPER_ADMIN_EMAIL: Joi.string().email().default('raykundan57@gmail.com').description('Initial super admin email'),
     SUPER_ADMIN_PASSWORD: Joi.string().allow('').description('Initial super admin password (optional, random if omitted)'),
     SUPER_ADMIN_NAME: Joi.string().default('Ray Kundan').description('Initial super admin display name'),
+    STRIPE_SECRET_KEY: Joi.string().description('Stripe secret API key'),
+    STRIPE_PRICE_STARTER: Joi.string().description('Stripe price id for starter plan'),
+    STRIPE_PRICE_PRO: Joi.string().description('Stripe price id for pro plan'),
+    STRIPE_BILLING_RETURN_URL: Joi.string().uri().description('Return URL after billing portal/checkout'),
   })
   .unknown();
 
@@ -74,5 +78,11 @@ module.exports = {
     email: envVars.SUPER_ADMIN_EMAIL,
     password: envVars.SUPER_ADMIN_PASSWORD,
     name: envVars.SUPER_ADMIN_NAME || 'Super Admin',
+  },
+  stripe: {
+    secretKey: envVars.STRIPE_SECRET_KEY,
+    priceStarter: envVars.STRIPE_PRICE_STARTER,
+    pricePro: envVars.STRIPE_PRICE_PRO,
+    returnUrl: envVars.STRIPE_BILLING_RETURN_URL,
   },
 };

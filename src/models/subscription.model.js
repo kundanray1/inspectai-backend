@@ -21,6 +21,7 @@ const subscriptionSchema = new mongoose.Schema(
     seats: { type: Number, default: 1 },
     reportLimit: { type: Number, default: 10 },
     usage: { type: [usageMetricSchema], default: [] },
+    cancelAtPeriodEnd: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
