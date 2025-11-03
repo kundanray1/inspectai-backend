@@ -82,6 +82,7 @@ const checkout = catchAsync(async (req, res) => {
   const url = await billingService.createCheckoutSession({
     organizationId,
     customerEmail: req.user.email,
+    customerName: req.user.name,
     priceId: req.body.priceId,
     cancelUrl,
   });

@@ -9,4 +9,3 @@ const listPublicPlans = catchAsync(async (_req, res) => {
 module.exports = {
   listPublicPlans,
 };
-

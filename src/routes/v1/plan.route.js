@@ -6,4 +6,3 @@ const router = express.Router();
 router.get('/public', planController.listPublicPlans);
 
 module.exports = router;
-

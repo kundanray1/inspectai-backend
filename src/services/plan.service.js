@@ -75,7 +75,7 @@ const ensureDefaultPlans = async () => {
       currency: 'usd',
       reportLimit: 20,
       features: ['20 inspections per month', 'Branded PDF exports', 'Priority support & AI suggestions'],
-      stripePriceId: config.stripe?.pricePro || null,
+      stripePriceId: (config.stripe && config.stripe.pricePro) || null,
       trialDays: 0,
       isPublic: true,
       isCustom: false,
@@ -108,15 +108,16 @@ const ensureDefaultPlans = async () => {
 };
 
 const createPlan = async (payload) => {
-  if (payload.slug) {
-    payload.slug = payload.slug.toLowerCase();
+  const planPayload = { ...payload };
+  if (planPayload.slug) {
+    planPayload.slug = planPayload.slug.toLowerCase();
   }
-  const existing = payload.slug ? await Plan.findOne({ slug: payload.slug }) : null;
+  const existing = planPayload.slug ? await Plan.findOne({ slug: planPayload.slug }) : null;
   if (existing) {
     throw new ApiError(httpStatus.CONFLICT, 'A plan with this slug already exists');
   }
 
-  const plan = await Plan.create(payload);
+  const plan = await Plan.create(planPayload);
   return formatPlan(plan);
 };
 
@@ -125,23 +126,51 @@ const listAllPlans = async () => {
   return plans.map(formatPlan);
 };
 
-const assignPlanToOrganization = async ({ planId, organizationId }) => {
-  const plan = await Plan.findOne({ _id: planId, active: true });
-  if (!plan) {
+const assignPlanToOrganization = async ({ planId, planSlug, organizationId, extraFields = {} }) => {
+  let planDoc = null;
+
+  if (planId) {
+    planDoc = await Plan.findOne({ _id: planId, active: true });
+  }
+
+  if (!planDoc && planSlug) {
+    planDoc = await Plan.findOne({ slug: planSlug, active: true });
+  }
+
+  if (!planDoc) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Plan not found');
   }
+
+  const updatePayload = {
+    plan: planDoc.slug,
+    reportLimit: planDoc.reportLimit,
+    ...extraFields,
+  };
+
+  Object.keys(updatePayload).forEach((key) => {
+    if (updatePayload[key] === undefined) {
+      delete updatePayload[key];
+    }
+  });
+
+  if (!Object.prototype.hasOwnProperty.call(updatePayload, 'stripeCustomerId')) {
+    updatePayload.stripeCustomerId = `demo_${organizationId}`;
+  }
+
+  const setOnInsertPayload = {
+    organizationId,
+  };
+
   const subscription = await Subscription.findOneAndUpdate(
     { organizationId },
     {
-      $set: {
-        plan: plan.slug,
-        reportLimit: plan.reportLimit,
-      },
+      $set: updatePayload,
+      $setOnInsert: setOnInsertPayload,
     },
     { new: true, upsert: true }
   );
 
-  return subscription.toObject();
+  return subscription ? subscription.toObject() : null;
 };
 
 module.exports = {
@@ -154,4 +183,3 @@ module.exports = {
   listAllPlans,
   assignPlanToOrganization,
 };
-

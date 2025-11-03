@@ -32,6 +32,7 @@ const envVarsSchema = Joi.object()
     STRIPE_PRICE_STARTER: Joi.string().description('Stripe price id for starter plan'),
     STRIPE_PRICE_PRO: Joi.string().description('Stripe price id for pro plan'),
     STRIPE_BILLING_RETURN_URL: Joi.string().uri().description('Return URL after billing portal/checkout'),
+    STRIPE_WEBHOOK_SECRET: Joi.string().description('Stripe webhook signing secret'),
   })
   .unknown();
 
@@ -84,5 +85,6 @@ module.exports = {
     priceStarter: envVars.STRIPE_PRICE_STARTER,
     pricePro: envVars.STRIPE_PRICE_PRO,
     returnUrl: envVars.STRIPE_BILLING_RETURN_URL,
+    webhookSecret: envVars.STRIPE_WEBHOOK_SECRET,
   },
 };

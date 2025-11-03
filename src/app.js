@@ -13,6 +13,7 @@ const { authLimiter } = require('./middlewares/rateLimiter');
 const routes = require('./routes/v1');
 const { errorConverter, errorHandler } = require('./middlewares/error');
 const ApiError = require('./utils/ApiError');
+const { billingController } = require('./controllers');
 
 const app = express();
 
@@ -23,6 +24,10 @@ if (config.env !== 'test') {
 
 // set security HTTP headers
 app.use(helmet());
+
+// stripe webhook endpoint (raw body required)
+app.post('/v1/billing/webhook', express.raw({ type: 'application/json' }), billingController.handleWebhook);
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), billingController.handleWebhook);
 
 // parse json request body
 app.use(express.json({ limit: '200mb' }));

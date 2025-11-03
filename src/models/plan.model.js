@@ -25,4 +25,3 @@ planSchema.index({ organizationId: 1, active: 1 });
 const Plan = mongoose.model('Plan', planSchema);
 
 module.exports = Plan;
-
