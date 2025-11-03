@@ -2,5 +2,35 @@ version: '3'
 
 services:
   node-app:
-    container_name: node-app-test
+    build: .
+    image: node-app-test
     command: yarn test
+    environment:
+      - NODE_ENV=test
+      - MONGODB_URL=mongodb://mongodb:27017/node-boilerplate
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - node-network
+
+  mongodb:
+    image: mongo:4.2.1-bionic
+    networks:
+      - node-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - node-network
+
+networks:
+  node-network:
+    driver: bridge

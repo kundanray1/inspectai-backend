@@ -33,6 +33,19 @@ const envVarsSchema = Joi.object()
     STRIPE_PRICE_PRO: Joi.string().description('Stripe price id for pro plan'),
     STRIPE_BILLING_RETURN_URL: Joi.string().uri().description('Return URL after billing portal/checkout'),
     STRIPE_WEBHOOK_SECRET: Joi.string().description('Stripe webhook signing secret'),
+    RABBITMQ_URL: Joi.string().default('amqp://localhost:5672').description('AMQP connection string'),
+    RABBITMQ_PREFETCH: Joi.number().integer().min(1).default(5).description('RabbitMQ prefetch count for workers'),
+    RABBITMQ_AUTO_START: Joi.boolean()
+      .truthy('true')
+      .truthy('1')
+      .falsy('false')
+      .falsy('0')
+      .default(true)
+      .description('Attempt to auto-start local RabbitMQ via Docker'),
+    OLLAMA_URL: Joi.string().uri().default('http://localhost:11434').description('Base URL for local Ollama instance'),
+    OLLAMA_MODEL_SCHEMA: Joi.string().default('llama3.1').description('Ollama model for schema extraction'),
+    OLLAMA_MODEL_INSPECTION: Joi.string().default('llama3.1').description('Ollama model for inspection generation'),
+    OLLAMA_TIMEOUT_MS: Joi.number().integer().min(1000).default(120000).description('Timeout for Ollama requests'),
   })
   .unknown();
 
@@ -86,5 +99,16 @@ module.exports = {
     pricePro: envVars.STRIPE_PRICE_PRO,
     returnUrl: envVars.STRIPE_BILLING_RETURN_URL,
     webhookSecret: envVars.STRIPE_WEBHOOK_SECRET,
+  },
+  rabbitmq: {
+    url: envVars.RABBITMQ_URL,
+    prefetch: envVars.RABBITMQ_PREFETCH,
+    autoStart: envVars.RABBITMQ_AUTO_START,
+  },
+  ollama: {
+    url: envVars.OLLAMA_URL,
+    schemaModel: envVars.OLLAMA_MODEL_SCHEMA,
+    inspectionModel: envVars.OLLAMA_MODEL_INSPECTION,
+    timeoutMs: envVars.OLLAMA_TIMEOUT_MS,
   },
 };

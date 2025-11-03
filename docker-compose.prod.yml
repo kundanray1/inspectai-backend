@@ -2,5 +2,43 @@ version: '3'
 
 services:
   node-app:
-    container_name: node-app-prod
-    command: yarn start
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: node-app-prod
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URL=mongodb://mongodb:27017/node-boilerplate
+      - RABBITMQ_URL=amqp://rabbitmq:5672
+    ports:
+      - '3000:3000'
+    depends_on:
+      - mongodb
+      - rabbitmq
+    networks:
+      - node-network
+
+  mongodb:
+    image: mongo:4.2.1-bionic
+    volumes:
+      - dbdata:/data/db
+    networks:
+      - node-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - node-network
+
+volumes:
+  dbdata:
+
+networks:
+  node-network:
+    driver: bridge

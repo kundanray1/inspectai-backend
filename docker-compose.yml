@@ -6,10 +6,12 @@ services:
     image: node-app
     environment:
       - MONGODB_URL=mongodb://mongodb:27017/node-boilerplate
+      - RABBITMQ_URL=amqp://rabbitmq:5672
     ports:
       - '3000:3000'
     depends_on:
       - mongodb
+      - rabbitmq
     volumes:
       - .:/usr/src/node-app
     networks:
@@ -21,6 +23,17 @@ services:
       - '27017:27017'
     volumes:
       - dbdata:/data/db
+    networks:
+      - node-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     networks:
       - node-network
 

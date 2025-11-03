@@ -15,6 +15,16 @@ JWT_SECRET=change-me
 FRONTEND_URL=http://localhost:5173
 UPLOAD_DIR=backend/uploads
 
+# RabbitMQ
+RABBITMQ_URL=amqp://localhost:5672
+RABBITMQ_AUTO_START=true
+RABBITMQ_PREFETCH=5
+
+# Ollama (local LLM)
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL_SCHEMA=llama3.1
+OLLAMA_MODEL_INSPECTION=llama3.1
+
 # Stripe Billing
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PRICE_PRO=price_...
@@ -34,3 +44,5 @@ SUPER_ADMIN_NAME=Ray Kundan
 - `STRIPE_BILLING_RETURN_URL` controls where Stripe sends users after checkout/portal.
 - `STRIPE_WEBHOOK_SECRET` is required for verifying Stripe webhook calls (Checkout, billing events).
 - Expose your webhook endpoint as `POST /v1/billing/webhook` (or `/api/billing/webhook`) when registering the Stripe CLI webhook listener.
+- When `RABBITMQ_AUTO_START=true`, the API will attempt to run `docker compose up -d rabbitmq` on boot if the broker is unreachable.
+- Set `OLLAMA_URL` to the host running your local Ollama models; both schema extraction and inspection generation use the configured models.
