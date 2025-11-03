@@ -9,3 +9,4 @@ module.exports.InspectionSchemas = inspectionExports;
 
 module.exports.Report = require('./report.model');
 module.exports.Subscription = require('./subscription.model');
+module.exports.Setting = require('./setting.model');

@@ -5,6 +5,7 @@ const propertyRoute = require('./property.route');
 const inspectionRoute = require('./inspection.route');
 const reportRoute = require('./report.route');
 const subscriptionRoute = require('./subscription.route');
+const adminRoute = require('./admin.route');
 const docsRoute = require('./docs.route');
 const config = require('../../config/config');
 
@@ -34,6 +35,10 @@ const defaultRoutes = [
   {
     path: '/subscriptions',
     route: subscriptionRoute,
+  },
+  {
+    path: '/admin',
+    route: adminRoute,
   },
 ];
 

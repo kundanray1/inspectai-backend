@@ -25,6 +25,9 @@ const envVarsSchema = Joi.object()
     EMAIL_FROM: Joi.string().description('the from field in the emails sent by the app'),
     FRONTEND_URL: Joi.string().uri().description('Allowed frontend origin for CORS'),
     UPLOAD_DIR: Joi.string().default('backend/uploads').description('Relative path for uploads storage'),
+    SUPER_ADMIN_EMAIL: Joi.string().email().default('raykundan57@gmail.com').description('Initial super admin email'),
+    SUPER_ADMIN_PASSWORD: Joi.string().allow('').description('Initial super admin password (optional, random if omitted)'),
+    SUPER_ADMIN_NAME: Joi.string().default('Ray Kundan').description('Initial super admin display name'),
   })
   .unknown();
 
@@ -66,5 +69,10 @@ module.exports = {
   frontendUrl: envVars.FRONTEND_URL || '*',
   uploads: {
     dir: envVars.UPLOAD_DIR,
+  },
+  superAdmin: {
+    email: envVars.SUPER_ADMIN_EMAIL,
+    password: envVars.SUPER_ADMIN_PASSWORD,
+    name: envVars.SUPER_ADMIN_NAME || 'Super Admin',
   },
 };
