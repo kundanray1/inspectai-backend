@@ -19,6 +19,12 @@ UPLOAD_DIR=backend/uploads
 RABBITMQ_URL=amqp://localhost:5672
 RABBITMQ_AUTO_START=true
 RABBITMQ_PREFETCH=5
+INSPECTION_QUEUE_EXCHANGE=inspectai.inspection
+INSPECTION_QUEUE_NAME=inspectai.inspection.analysis
+INSPECTION_QUEUE_ROUTING_KEY=inspection.analysis
+INSPECTION_QUEUE_MAX_PENDING=500
+INSPECTION_WORKER_PREFETCH=5
+INSPECTION_WORKER_CONCURRENCY=2
 
 # Ollama (local LLM)
 OLLAMA_URL=http://localhost:11434
@@ -46,3 +52,4 @@ SUPER_ADMIN_NAME=Ray Kundan
 - Expose your webhook endpoint as `POST /v1/billing/webhook` (or `/api/billing/webhook`) when registering the Stripe CLI webhook listener.
 - When `RABBITMQ_AUTO_START=true`, the API will attempt to run `docker compose up -d rabbitmq` on boot if the broker is unreachable.
 - Set `OLLAMA_URL` to the host running your local Ollama models; both schema extraction and inspection generation use the configured models.
+- Inspection workers can be started with `yarn worker:inspection` (development) or via PM2 (`inspection-worker` app, two instances by default).

@@ -6,3 +6,5 @@ module.exports.reportValidation = require('./report.validation');
 module.exports.subscriptionValidation = require('./subscription.validation');
 module.exports.adminValidation = require('./admin.validation');
 module.exports.accountValidation = require('./account.validation');
+module.exports.jobValidation = require('./job.validation');
+module.exports.reportPresetValidation = require('./reportPreset.validation');

@@ -12,3 +12,5 @@ module.exports.Subscription = require('./subscription.model');
 module.exports.Setting = require('./setting.model');
 module.exports.NotificationPreference = require('./notificationPreference.model');
 module.exports.Plan = require('./plan.model');
+module.exports.Job = require('./job.model');
+module.exports.ReportPreset = require('./reportPreset.model');

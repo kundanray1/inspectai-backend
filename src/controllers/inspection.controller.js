@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
@@ -51,7 +52,12 @@ const getInspection = catchAsync(async (req, res) => {
 const updateInspectionHandler = catchAsync(async (req, res) => {
   const { id } = req.params;
   const orgId = req.user ? req.user.organizationId : undefined;
-  const inspection = await Inspection.findOneAndUpdate({ _id: id, organizationId: orgId }, req.body, {
+  const updatePayload = { ...req.body };
+  if (updatePayload.reportPresetId) {
+    updatePayload.reportPresetId = new mongoose.Types.ObjectId(updatePayload.reportPresetId);
+  }
+
+  const inspection = await Inspection.findOneAndUpdate({ _id: id, organizationId: orgId }, updatePayload, {
     new: true,
     runValidators: true,
   }).lean();

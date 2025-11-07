@@ -2,12 +2,13 @@ const mongoose = require('mongoose');
 const { Inspection } = require('../models/inspection.model');
 const Report = require('../models/report.model');
 
-const createInspection = async ({ propertyId, organizationId, createdBy, scheduledFor, rooms }) => {
+const createInspection = async ({ propertyId, organizationId, createdBy, scheduledFor, rooms, reportPresetId }) => {
   const inspection = await Inspection.create({
     propertyId: new mongoose.Types.ObjectId(propertyId),
     organizationId,
     createdBy: new mongoose.Types.ObjectId(createdBy),
     scheduledFor: scheduledFor ? new Date(scheduledFor) : undefined,
+    reportPresetId: reportPresetId ? new mongoose.Types.ObjectId(reportPresetId) : undefined,
     rooms: Array.isArray(rooms)
       ? rooms.map((room, index) => ({
           name: room.name,

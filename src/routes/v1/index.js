@@ -8,6 +8,8 @@ const subscriptionRoute = require('./subscription.route');
 const adminRoute = require('./admin.route');
 const accountRoute = require('./account.route');
 const planRoute = require('./plan.route');
+const reportPresetRoute = require('./reportPreset.route');
+const jobRoute = require('./job.route');
 const docsRoute = require('./docs.route');
 const config = require('../../config/config');
 
@@ -49,6 +51,14 @@ const defaultRoutes = [
   {
     path: '/plans',
     route: planRoute,
+  },
+  {
+    path: '/report-presets',
+    route: reportPresetRoute,
+  },
+  {
+    path: '/jobs',
+    route: jobRoute,
   },
 ];
 

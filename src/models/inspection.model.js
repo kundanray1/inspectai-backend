@@ -51,6 +51,7 @@ const inspectionSchema = new mongoose.Schema(
     summary: { type: String },
     aiSummary: { type: String },
     shareLinkToken: { type: String, unique: true, sparse: true },
+    reportPresetId: { type: mongoose.Schema.Types.ObjectId, ref: 'ReportPreset' },
   },
   { timestamps: true }
 );

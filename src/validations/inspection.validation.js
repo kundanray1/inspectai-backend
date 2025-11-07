@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const { objectId } = require('./custom.validation');
 
 const listInspections = {
   query: Joi.object().keys({
@@ -12,6 +13,7 @@ const createInspection = {
     .keys({
       propertyId: Joi.string().required(),
       scheduledFor: Joi.date().iso().optional(),
+      reportPresetId: Joi.string().custom(objectId),
       rooms: Joi.array()
         .items(
           Joi.object().keys({
@@ -33,6 +35,7 @@ const updateInspection = {
       completedAt: Joi.date().iso(),
       summary: Joi.string().allow('', null),
       aiSummary: Joi.string().allow('', null),
+      reportPresetId: Joi.string().custom(objectId),
     })
     .min(1),
 };

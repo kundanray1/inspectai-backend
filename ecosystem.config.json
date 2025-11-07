@@ -10,6 +10,17 @@
       "env": {
         "NODE_ENV": "production"
       }
+    },
+    {
+      "name": "inspection-worker",
+      "script": "workers/inspectionWorker.js",
+      "instances": 2,
+      "autorestart": true,
+      "watch": false,
+      "time": true,
+      "env": {
+        "NODE_ENV": "production"
+      }
     }
   ]
 }

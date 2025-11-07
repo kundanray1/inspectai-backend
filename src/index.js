@@ -5,6 +5,7 @@ const logger = require('./config/logger');
 const { ensureSuperAdmin } = require('./utils/bootstrap');
 const { ensureDefaultPlans } = require('./services/plan.service');
 const { initRabbitMQ, closeRabbitMQ } = require('./lib/rabbitmq');
+const { initSocket } = require('./lib/socket');
 
 let server;
 mongoose.connect(config.mongoose.url, config.mongoose.options).then(async () => {
@@ -15,6 +16,7 @@ mongoose.connect(config.mongoose.url, config.mongoose.options).then(async () => 
   server = app.listen(config.port, () => {
     logger.info(`Listening to port ${config.port}`);
   });
+  initSocket(server);
 });
 
 const exitHandler = async () => {

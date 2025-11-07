@@ -46,6 +46,20 @@ const envVarsSchema = Joi.object()
     OLLAMA_MODEL_SCHEMA: Joi.string().default('llama3.1').description('Ollama model for schema extraction'),
     OLLAMA_MODEL_INSPECTION: Joi.string().default('llama3.1').description('Ollama model for inspection generation'),
     OLLAMA_TIMEOUT_MS: Joi.number().integer().min(1000).default(120000).description('Timeout for Ollama requests'),
+    INSPECTION_QUEUE_EXCHANGE: Joi.string().default('inspectai.inspection').description('Inspection queue exchange name'),
+    INSPECTION_QUEUE_NAME: Joi.string().default('inspectai.inspection.analysis').description('Inspection queue name'),
+    INSPECTION_QUEUE_ROUTING_KEY: Joi.string().default('inspection.analysis').description('Inspection queue routing key'),
+    INSPECTION_QUEUE_MAX_PENDING: Joi.number()
+      .integer()
+      .min(0)
+      .default(500)
+      .description('Maximum pending inspection jobs before applying backpressure'),
+    INSPECTION_WORKER_PREFETCH: Joi.number().integer().min(1).default(5).description('Prefetch count per inspection worker'),
+    INSPECTION_WORKER_CONCURRENCY: Joi.number()
+      .integer()
+      .min(1)
+      .default(2)
+      .description('Number of inspection worker instances'),
   })
   .unknown();
 
@@ -110,5 +124,15 @@ module.exports = {
     schemaModel: envVars.OLLAMA_MODEL_SCHEMA,
     inspectionModel: envVars.OLLAMA_MODEL_INSPECTION,
     timeoutMs: envVars.OLLAMA_TIMEOUT_MS,
+  },
+  queues: {
+    inspection: {
+      exchange: envVars.INSPECTION_QUEUE_EXCHANGE,
+      queue: envVars.INSPECTION_QUEUE_NAME,
+      routingKey: envVars.INSPECTION_QUEUE_ROUTING_KEY,
+      maxPending: envVars.INSPECTION_QUEUE_MAX_PENDING,
+      prefetch: envVars.INSPECTION_WORKER_PREFETCH,
+      concurrency: envVars.INSPECTION_WORKER_CONCURRENCY,
+    },
   },
 };

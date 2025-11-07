@@ -6,3 +6,6 @@ module.exports.adminService = require('./admin.service');
 module.exports.billingService = require('./billing.service');
 module.exports.notificationService = require('./notification.service');
 module.exports.planService = require('./plan.service');
+module.exports.jobService = require('./job.service');
+module.exports.reportPresetService = require('./reportPreset.service');
+module.exports.inspectionQueue = require('../queues/inspection.queue');
