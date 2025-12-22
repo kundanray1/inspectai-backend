@@ -56,4 +56,18 @@ router.post(
   photoController.registerPhotos
 );
 
+// Get all photo URLs for an inspection
+router.get(
+  '/:id/photos/urls',
+  auth(),
+  photoController.getAllPhotoUrls
+);
+
+// Get single photo URL
+router.get(
+  '/:id/photos/:photoId/url',
+  auth(),
+  photoController.getPhotoUrl
+);
+
 module.exports = router;

@@ -346,8 +346,82 @@ async function ensurePreset(inspection, user) {
   return preset;
 }
 
+/**
+ * Get presigned download URL for a photo
+ */
+const getPhotoUrl = catchAsync(async (req, res) => {
+  const { id: inspectionId, photoId } = req.params;
+
+  const inspection = await Inspection.findOne({ _id: inspectionId, organizationId: req.user.organizationId });
+  if (!inspection) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Inspection not found');
+  }
+
+  // Find photo in any room
+  let photo = null;
+  for (const room of inspection.rooms) {
+    photo = room.photos.id(photoId);
+    if (photo) break;
+  }
+
+  if (!photo) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Photo not found');
+  }
+
+  // Get presigned download URL
+  const downloadUrl = await storage.getPresignedDownloadUrl(photo.storagePath, {
+    expiresIn: 3600, // 1 hour
+  });
+
+  res.status(httpStatus.OK).send({
+    data: {
+      photoId,
+      url: downloadUrl,
+      expiresIn: 3600,
+    },
+  });
+});
+
+/**
+ * Get presigned download URLs for all photos in an inspection
+ */
+const getAllPhotoUrls = catchAsync(async (req, res) => {
+  const { id: inspectionId } = req.params;
+
+  const inspection = await Inspection.findOne({ _id: inspectionId, organizationId: req.user.organizationId });
+  if (!inspection) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Inspection not found');
+  }
+
+  const photoUrls = [];
+  
+  for (const room of inspection.rooms) {
+    for (const photo of room.photos) {
+      try {
+        const url = await storage.getPresignedDownloadUrl(photo.storagePath, {
+          expiresIn: 3600,
+        });
+        photoUrls.push({
+          photoId: photo._id.toString(),
+          roomId: room._id.toString(),
+          url,
+          filename: photo.originalFilename,
+        });
+      } catch (err) {
+        logger.warn({ photoId: photo._id, err: err.message }, 'Failed to get photo URL');
+      }
+    }
+  }
+
+  res.status(httpStatus.OK).send({
+    data: photoUrls,
+  });
+});
+
 module.exports = {
   getUploadUrls,
   registerPhotos,
   uploadPhotos,
+  getPhotoUrl,
+  getAllPhotoUrls,
 };
