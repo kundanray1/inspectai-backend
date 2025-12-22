@@ -18,6 +18,17 @@ const errorConverter = (err, req, res, next) => {
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
   let { statusCode, message } = err;
+  
+  // Always log errors in production for debugging
+  logger.error({ 
+    err: err.message, 
+    statusCode, 
+    isOperational: err.isOperational,
+    path: req.path,
+    method: req.method,
+    stack: err.stack?.split('\n').slice(0, 5).join('\n')
+  }, 'API Error');
+
   if (config.env === 'production' && !err.isOperational) {
     statusCode = httpStatus.INTERNAL_SERVER_ERROR;
     message = httpStatus[httpStatus.INTERNAL_SERVER_ERROR];
@@ -30,10 +41,6 @@ const errorHandler = (err, req, res, next) => {
     message,
     ...(config.env === 'development' && { stack: err.stack }),
   };
-
-  if (config.env === 'development') {
-    logger.error(err);
-  }
 
   res.status(statusCode).send(response);
 };
