@@ -68,7 +68,8 @@ const analyseRoom = {
 
 const uploadPhotos = {
   body: Joi.object().keys({
-    roomId: Joi.string().required(),
+    // roomId is optional - if not provided, AI will classify the photo into rooms
+    roomId: Joi.string().custom(objectId).optional(),
   }),
 };
 
