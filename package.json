@@ -7,10 +7,11 @@
   "author": "Hagop Jamkojian <hagopj13@gmail.com>",
   "license": "MIT",
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=18.0.0"
   },
   "scripts": {
-    "start": "pm2 start ecosystem.config.json --no-daemon",
+    "start": "node src/index.js",
+    "start:pm2": "pm2 start ecosystem.config.json --no-daemon",
     "dev": "cross-env NODE_ENV=development nodemon src/index.js",
     "worker:inspection": "node workers/inspectionWorker.bullmq.js",
     "worker:inspection:legacy": "node workers/inspectionWorker.js",
