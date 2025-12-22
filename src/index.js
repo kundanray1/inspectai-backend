@@ -42,6 +42,18 @@ const startServer = async () => {
       }
     } else {
       logger.info('Using BullMQ with Redis for job processing');
+      
+      // Start embedded worker if EMBEDDED_WORKER env is set
+      // This is a fallback if PM2 multi-process setup isn't working
+      if (process.env.EMBEDDED_WORKER === 'true') {
+        try {
+          logger.info('Starting embedded inspection worker...');
+          require('../workers/inspectionWorker.bullmq');
+          logger.info('Embedded worker started successfully');
+        } catch (err) {
+          logger.error({ err: err.message }, 'Failed to start embedded worker');
+        }
+      }
     }
 
     // Start HTTP server
