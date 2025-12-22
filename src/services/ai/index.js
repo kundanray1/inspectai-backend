@@ -7,8 +7,14 @@
  */
 
 const geminiService = require('./gemini.service');
+const schemaExtractionService = require('./schemaExtraction.service');
+const imageAnalysisService = require('./imageAnalysis.service');
+const reportGenerationService = require('./reportGeneration.service');
 
 module.exports = {
   geminiService,
+  schemaExtractionService,
+  imageAnalysisService,
+  reportGenerationService,
 };
 
