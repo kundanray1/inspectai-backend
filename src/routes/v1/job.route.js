@@ -6,6 +6,9 @@ const { jobValidation } = require('../../validations');
 
 const router = express.Router({ mergeParams: true });
 
+// Queue status (for debugging)
+router.get('/queue-status', auth('manageUsers'), jobController.getQueueStatus);
+
 router
   .route('/inspection/:inspectionId')
   .get(auth(), validate(jobValidation.listInspectionJobs), jobController.listInspectionJobs)

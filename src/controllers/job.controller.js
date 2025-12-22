@@ -1,7 +1,8 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const { jobService } = require('../services');
-const inspectionQueue = require('../queues/inspection.queue');
+const inspectionQueue = require('../queues/inspection.bullmq');
+const { getQueueStats, healthCheck } = require('../queues/queue.config');
 
 const listInspectionJobs = catchAsync(async (req, res) => {
   const jobs = await jobService.listJobsForInspection({
@@ -29,7 +30,9 @@ const createJob = catchAsync(async (req, res) => {
   });
 
   const queueResult = await inspectionQueue.publishInspectionJob({
-    job,
+    jobId: job._id.toString(),
+    inspectionId: job.inspectionId.toString(),
+    organizationId: job.organizationId.toString(),
     payload: req.body.payload || {},
   });
 
@@ -54,9 +57,29 @@ const updateJob = catchAsync(async (req, res) => {
   res.send({ data: job });
 });
 
+/**
+ * Get queue status (for debugging/monitoring)
+ */
+const getQueueStatus = catchAsync(async (req, res) => {
+  const [inspectionStats, redisHealthy] = await Promise.all([
+    getQueueStats('inspection-process'),
+    healthCheck(),
+  ]);
+
+  res.send({
+    data: {
+      redisConnected: redisHealthy,
+      queues: {
+        'inspection-process': inspectionStats,
+      },
+    },
+  });
+});
+
 module.exports = {
   listInspectionJobs,
   getJob,
   createJob,
   updateJob,
+  getQueueStatus,
 };
