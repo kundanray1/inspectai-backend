@@ -6,7 +6,7 @@ const config = require('../config/config');
 const ApiError = require('../utils/ApiError');
 const ReportPreset = require('../models/reportPreset.model');
 const logger = require('../config/logger');
-const { generateSchemaFromSampleReport } = require('./ollama.service');
+const { extractSchemaFromPdf, getDefaultSections } = require('./ai/schemaExtraction.service');
 
 const STORAGE_DIR = path.resolve(config.uploads.dir, 'presets');
 
@@ -38,11 +38,23 @@ const buildFallbackSchema = (name = 'Inspection') => {
 
 const generateSchemaWithFallback = async ({ sampleReportPath, presetName }) => {
   try {
-    const schema = await generateSchemaFromSampleReport({ filePath: sampleReportPath });
+    // Use Gemini Vision to extract schema from PDF
+    const result = await extractSchemaFromPdf({ filePath: sampleReportPath });
+    logger.info(
+      { 
+        confidence: result.confidence, 
+        warnings: result.warnings,
+        suggestions: result.suggestions 
+      },
+      'Schema extracted from PDF using Gemini Vision'
+    );
     return {
-      schema,
+      schema: result.schema,
       generatedFromSample: true,
       usedFallback: false,
+      confidence: result.confidence,
+      warnings: result.warnings,
+      suggestions: result.suggestions,
     };
   } catch (error) {
     logger.warn({ err: error }, 'Falling back to default schema template for report preset');
@@ -50,6 +62,9 @@ const generateSchemaWithFallback = async ({ sampleReportPath, presetName }) => {
       schema: buildFallbackSchema(presetName),
       generatedFromSample: false,
       usedFallback: true,
+      confidence: 0,
+      warnings: [`Schema extraction failed: ${error.message}`],
+      suggestions: ['Consider uploading a clearer PDF or manually editing the schema'],
     };
   }
 };

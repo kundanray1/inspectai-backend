@@ -6,7 +6,7 @@ const config = require('../config/config');
 const { Inspection } = require('../models/inspection.model');
 const logger = require('../config/logger');
 const { jobService, reportPresetService } = require('../services');
-const inspectionQueue = require('../queues/inspection.queue');
+const inspectionQueue = require('../queues/inspection.bullmq');
 
 const uploadPhotos = catchAsync(async (req, res) => {
   const { id } = req.params;
@@ -67,8 +67,65 @@ const uploadPhotos = catchAsync(async (req, res) => {
     }
   }
 
+  // Auto-create a default preset if none exists
   if (!preset) {
-    throw new ApiError(httpStatus.UNPROCESSABLE_ENTITY, 'No report preset configured for this organization');
+    logger.info({ organizationId: req.user.organizationId }, 'No preset found, creating default preset');
+    preset = await reportPresetService.createPreset({
+      organizationId: req.user.organizationId,
+      userId: req.user.id,
+      name: 'Default Inspection Report',
+      description: 'Auto-generated default preset for property inspections',
+      schema: {
+        title: 'Property Inspection Report',
+        sections: [
+          {
+            id: 'property_overview',
+            name: 'Property Overview',
+            description: 'Basic property information',
+            order: 1,
+            repeatable: false,
+            fields: [
+              { key: 'property_address', label: 'Property Address', type: 'text', required: true },
+              { key: 'inspection_date', label: 'Inspection Date', type: 'date', required: true },
+              { key: 'inspector_name', label: 'Inspector Name', type: 'text', required: true },
+            ],
+          },
+          {
+            id: 'room_inspection',
+            name: 'Room Inspection',
+            description: 'Individual room inspections',
+            order: 2,
+            repeatable: true,
+            fields: [
+              { key: 'room_name', label: 'Room Name', type: 'text', required: true },
+              { key: 'condition_rating', label: 'Condition', type: 'condition_rating', required: true },
+              { key: 'photos', label: 'Photos', type: 'image_gallery' },
+              { key: 'issues', label: 'Issues Found', type: 'issue_list' },
+              { key: 'notes', label: 'Inspector Notes', type: 'textarea' },
+            ],
+          },
+          {
+            id: 'summary',
+            name: 'Summary & Recommendations',
+            description: 'Overall assessment and recommendations',
+            order: 3,
+            repeatable: false,
+            fields: [
+              { key: 'overall_condition', label: 'Overall Condition', type: 'condition_rating', required: true },
+              { key: 'summary', label: 'Executive Summary', type: 'textarea', required: true },
+              { key: 'recommendations', label: 'Recommendations', type: 'textarea' },
+            ],
+          },
+        ],
+        styling: {
+          headerStyle: 'centered',
+          primaryColor: '#1a365d',
+          fontFamily: 'Arial',
+        },
+      },
+      isDefault: true,
+    });
+    inspection.reportPresetId = preset._id;
   }
 
   inspection.markModified('rooms');
@@ -93,14 +150,18 @@ const uploadPhotos = catchAsync(async (req, res) => {
   let queueResult;
   let queuedJob;
   try {
+    // Mark job as queued first
+    await jobService.markJobQueued({ jobId: job._id, queueDepth: 0 });
+    
+    // Publish to BullMQ queue
     queueResult = await inspectionQueue.publishInspectionJob({
-      job,
+      jobId: job._id.toString(),
+      inspectionId: inspection._id.toString(),
+      organizationId: req.user.organizationId.toString(),
       payload: {
-        jobId: job._id,
-        inspectionId: inspection._id,
         roomId,
-        photoIds: newPhotos.map((photo) => photo._id),
-        reportPresetId: inspection.reportPresetId,
+        photoIds: newPhotos.map((photo) => photo._id.toString()),
+        reportPresetId: inspection.reportPresetId?.toString(),
       },
     });
     queuedJob = await jobService.getJobById(job._id);

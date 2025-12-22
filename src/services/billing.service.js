@@ -114,18 +114,19 @@ const createCheckoutSession = async ({ organizationId, customerEmail, customerNa
     name: customerName,
   });
 
-  const successUrl = stripeConfig.returnUrl || cancelUrl;
-  const cancelUrlFinal = cancelUrl || successUrl;
+  // Use configured URLs, with fallbacks
+  const successUrl = stripeConfig.successUrl || stripeConfig.returnUrl || cancelUrl;
+  const cancelUrlFinal = stripeConfig.cancelUrl || cancelUrl || stripeConfig.returnUrl || successUrl;
 
   if (!successUrl) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Stripe return URL is not configured.');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Stripe return URL is not configured. Please set STRIPE_SUCCESS_URL or STRIPE_BILLING_RETURN_URL.');
   }
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: stripeCustomerId,
     line_items: [{ price: plan.stripePriceId, quantity: 1 }],
-    success_url: successUrl,
+    success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: cancelUrlFinal,
     metadata: {
       organizationId,

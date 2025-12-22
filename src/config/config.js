@@ -32,6 +32,8 @@ const envVarsSchema = Joi.object()
     STRIPE_PRICE_STARTER: Joi.string().description('Stripe price id for starter plan'),
     STRIPE_PRICE_PRO: Joi.string().description('Stripe price id for pro plan'),
     STRIPE_BILLING_RETURN_URL: Joi.string().uri().description('Return URL after billing portal/checkout'),
+    STRIPE_SUCCESS_URL: Joi.string().uri().description('Stripe checkout success URL'),
+    STRIPE_CANCEL_URL: Joi.string().uri().description('Stripe checkout cancel URL'),
     STRIPE_WEBHOOK_SECRET: Joi.string().description('Stripe webhook signing secret'),
     RABBITMQ_URL: Joi.string().default('amqp://localhost:5672').description('AMQP connection string (deprecated)'),
     RABBITMQ_PREFETCH: Joi.number().integer().min(1).default(5).description('RabbitMQ prefetch count (deprecated)'),
@@ -138,6 +140,8 @@ module.exports = {
     priceStarter: envVars.STRIPE_PRICE_STARTER,
     pricePro: envVars.STRIPE_PRICE_PRO,
     returnUrl: envVars.STRIPE_BILLING_RETURN_URL,
+    successUrl: envVars.STRIPE_SUCCESS_URL || envVars.STRIPE_BILLING_RETURN_URL,
+    cancelUrl: envVars.STRIPE_CANCEL_URL || envVars.STRIPE_BILLING_RETURN_URL,
     webhookSecret: envVars.STRIPE_WEBHOOK_SECRET,
   },
   rabbitmq: {
