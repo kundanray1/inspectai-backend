@@ -8,9 +8,9 @@ const reportPresetSchema = new mongoose.Schema(
     description: { type: String },
     schema: { type: mongoose.Schema.Types.Mixed, required: true },
     sampleReportPath: { type: String },
-    tags: { type: [String], default: () => [] },
+    tags: { type: mongoose.Schema.Types.Mixed, default: [] },
     isDefault: { type: Boolean, default: false },
-    versions: { type: [mongoose.Schema.Types.Mixed], default: () => [] },
+    versions: { type: mongoose.Schema.Types.Mixed, default: [] },
   },
   {
     timestamps: true,
