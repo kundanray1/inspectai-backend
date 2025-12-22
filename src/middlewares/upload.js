@@ -1,27 +1,22 @@
 const multer = require('multer');
-const path = require('path');
-const config = require('../config/config');
-const { ensureDirSync } = require('../utils/fs');
 
-const uploadDir = path.resolve(process.cwd(), config.uploads.dir || 'backend/uploads');
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    ensureDirSync(uploadDir);
-    cb(null, uploadDir);
-  },
-  filename: (_req, file, cb) => {
-    const timestamp = Date.now();
-    const safeName = file.originalname.replace(/\s+/g, '-');
-    cb(null, `${timestamp}-${safeName}`);
-  },
-});
+// Use memory storage for cloud deployment (Railway/Cloudflare)
+// Files will be uploaded to R2 from memory buffer
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024,
-    files: 50,
+    fileSize: 10 * 1024 * 1024, // 10MB per file
+    files: 50, // Max 50 files per request
+  },
+  fileFilter: (_req, file, cb) => {
+    // Accept only images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
   },
 });
 

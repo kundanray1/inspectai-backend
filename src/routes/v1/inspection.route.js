@@ -31,12 +31,29 @@ router.post(
   inspectionController.analyseRoom
 );
 
+// Legacy multipart upload (backwards compatible)
 router.post(
   '/:id/photos',
   auth(),
   upload.array('photos'),
   validate(inspectionValidation.uploadPhotos),
   photoController.uploadPhotos
+);
+
+// Presigned URL flow - Step 1: Get upload URLs
+router.post(
+  '/:id/photos/upload-urls',
+  auth(),
+  validate(inspectionValidation.getUploadUrls),
+  photoController.getUploadUrls
+);
+
+// Presigned URL flow - Step 2: Register uploaded photos
+router.post(
+  '/:id/photos/register',
+  auth(),
+  validate(inspectionValidation.registerPhotos),
+  photoController.registerPhotos
 );
 
 module.exports = router;

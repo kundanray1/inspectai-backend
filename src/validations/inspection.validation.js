@@ -73,6 +73,39 @@ const uploadPhotos = {
   }),
 };
 
+const getUploadUrls = {
+  body: Joi.object().keys({
+    files: Joi.array()
+      .items(
+        Joi.object().keys({
+          filename: Joi.string().required(),
+          contentType: Joi.string().default('image/jpeg'),
+        })
+      )
+      .min(1)
+      .max(50)
+      .required(),
+  }),
+};
+
+const registerPhotos = {
+  body: Joi.object().keys({
+    roomId: Joi.string().custom(objectId).optional(),
+    photos: Joi.array()
+      .items(
+        Joi.object().keys({
+          key: Joi.string().required(),
+          filename: Joi.string().required(),
+          fileSize: Joi.number().integer().min(0).optional(),
+          contentType: Joi.string().default('image/jpeg'),
+        })
+      )
+      .min(1)
+      .max(50)
+      .required(),
+  }),
+};
+
 module.exports = {
   listInspections,
   createInspection,
@@ -81,4 +114,6 @@ module.exports = {
   updateRoom,
   analyseRoom,
   uploadPhotos,
+  getUploadUrls,
+  registerPhotos,
 };
