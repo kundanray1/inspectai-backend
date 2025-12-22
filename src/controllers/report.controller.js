@@ -39,10 +39,11 @@ const createReport = catchAsync(async (req, res) => {
   const { user } = req;
 
   // Check if inspection exists and belongs to user's org
+  // Note: rooms is embedded in inspection, not a reference, so only populate propertyId
   const inspection = await Inspection.findOne({
     _id: inspectionId,
     organizationId: user.organizationId,
-  }).populate('rooms').populate('propertyId');
+  }).populate('propertyId');
 
   if (!inspection) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Inspection not found');
@@ -176,7 +177,7 @@ const generateReportPDF = catchAsync(async (req, res) => {
     path: 'inspectionId',
     populate: [
       { path: 'propertyId' },
-      { path: 'rooms' },
+      // Note: rooms is embedded, not a reference, so no need to populate
     ],
   });
 
@@ -299,7 +300,7 @@ const previewReportPDF = catchAsync(async (req, res) => {
     path: 'inspectionId',
     populate: [
       { path: 'propertyId' },
-      { path: 'rooms' },
+      // Note: rooms is embedded, not a reference
     ],
   });
 

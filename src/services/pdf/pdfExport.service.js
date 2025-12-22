@@ -469,6 +469,11 @@ const generateInspectionReportPDF = async ({
   organization,
   isTrialUser = false,
 }) => {
+  // Defensive null checks
+  if (!inspection) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Inspection data is required for PDF generation');
+  }
+
   // Build branding from organization and preset
   const branding = {
     companyName: organization?.name || 'InspectAI',
@@ -487,14 +492,18 @@ const generateInspectionReportPDF = async ({
   // Build sections from report data
   const sections = [];
 
+  // Get property address - handle both property and propertyId (populated)
+  const propertyAddress = inspection.property?.address || inspection.propertyId?.address || 'N/A';
+  const propertyName = inspection.property?.name || inspection.propertyId?.name || propertyAddress;
+
   // Property Overview section
   sections.push({
     title: 'Property Overview',
     fields: [
-      { label: 'Property Address', value: inspection.property?.address || 'N/A' },
-      { label: 'Inspection Date', value: inspection.createdAt, type: 'date' },
+      { label: 'Property Address', value: propertyAddress },
+      { label: 'Inspection Date', value: inspection.createdAt || new Date(), type: 'date' },
       { label: 'Inspector', value: inspection.inspector?.name || 'N/A' },
-      { label: 'Status', value: inspection.status },
+      { label: 'Status', value: inspection.status || 'N/A' },
     ],
   });
 
@@ -541,8 +550,10 @@ const generateInspectionReportPDF = async ({
   }
 
   // Generate PDF
+  const pdfPropertyAddress = inspection.property?.address || inspection.propertyId?.address || 'Property';
+  
   return generatePDF({
-    title: `Inspection Report - ${inspection.property?.address || 'Property'}`,
+    title: `Inspection Report - ${pdfPropertyAddress}`,
     subtitle: `Generated on ${new Date().toLocaleDateString()}`,
     branding,
     watermark,
@@ -552,7 +563,7 @@ const generateInspectionReportPDF = async ({
       : `© ${new Date().getFullYear()} ${organization?.name || 'InspectAI'} - Powered by InspectAI`,
     metadata: {
       author: inspection.inspector?.name || 'InspectAI',
-      subject: `Property Inspection Report for ${inspection.property?.address || 'Property'}`,
+      subject: `Property Inspection Report for ${pdfPropertyAddress}`,
     },
   });
 };
