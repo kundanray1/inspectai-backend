@@ -7,6 +7,74 @@ const { getStorage, storagePaths } = require('../lib/storage');
 const logger = require('../config/logger');
 
 /**
+ * List all reports for the organization
+ * @route GET /v1/reports
+ */
+const listReports = catchAsync(async (req, res) => {
+  const { user } = req;
+  const { page = 1, limit = 20, status } = req.query;
+
+  const query = { organizationId: user.organizationId };
+  
+  // Optional status filter
+  if (status) {
+    query.status = status;
+  }
+
+  const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+
+  const [reports, total] = await Promise.all([
+    Report.find(query)
+      .populate({
+        path: 'inspectionId',
+        populate: { path: 'propertyId' },
+      })
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit, 10)),
+    Report.countDocuments(query),
+  ]);
+
+  // Enrich reports with expiry info
+  const enrichedReports = reports.map(report => {
+    const latestVersion = report.versions.find(v => v.version === report.currentVersion);
+    let expiryInfo = null;
+
+    if (latestVersion?.generatedAt) {
+      const expiry = calculateExpiry(latestVersion.generatedAt);
+      expiryInfo = {
+        expired: expiry.expired,
+        expiresAt: expiry.expiresAt,
+        daysRemaining: expiry.daysRemaining,
+        hoursRemaining: expiry.hoursRemaining,
+      };
+    }
+
+    return {
+      ...report.toObject(),
+      expiryInfo,
+      property: report.inspectionId?.propertyId || null,
+      inspection: report.inspectionId ? {
+        _id: report.inspectionId._id,
+        status: report.inspectionId.status,
+        roomsCount: report.inspectionId.rooms?.length || 0,
+      } : null,
+    };
+  });
+
+  res.json({
+    success: true,
+    data: enrichedReports,
+    meta: {
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      totalPages: Math.ceil(total / parseInt(limit, 10)),
+    },
+  });
+});
+
+/**
  * Get report by inspection ID
  * @route GET /v1/reports/inspection/:inspectionId
  */
@@ -92,9 +160,35 @@ const createReport = catchAsync(async (req, res) => {
   });
 });
 
+// Report PDFs are available for 7 days after generation
+const REPORT_EXPIRY_DAYS = 7;
+const REPORT_EXPIRY_SECONDS = REPORT_EXPIRY_DAYS * 24 * 60 * 60; // 7 days in seconds
+
+/**
+ * Calculate remaining time until report expires
+ * @param {Date} generatedAt - When the PDF was generated
+ * @returns {{ expired: boolean, expiresAt: Date, daysRemaining: number, hoursRemaining: number }}
+ */
+const calculateExpiry = (generatedAt) => {
+  const expiresAt = new Date(generatedAt);
+  expiresAt.setDate(expiresAt.getDate() + REPORT_EXPIRY_DAYS);
+  
+  const now = new Date();
+  const msRemaining = expiresAt.getTime() - now.getTime();
+  const expired = msRemaining <= 0;
+  
+  const daysRemaining = Math.max(0, Math.floor(msRemaining / (1000 * 60 * 60 * 24)));
+  const hoursRemaining = Math.max(0, Math.floor((msRemaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+  
+  return { expired, expiresAt, daysRemaining, hoursRemaining };
+};
+
 /**
  * Download inspection report as PDF
  * @route GET /v1/reports/:reportId/download
+ * 
+ * Reports are available for 7 days after generation.
+ * After expiry, user must regenerate the report.
  */
 const downloadReportPDF = catchAsync(async (req, res) => {
   const { reportId } = req.params;
@@ -119,18 +213,22 @@ const downloadReportPDF = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Report version not found');
   }
 
-  // If PDF URL exists, return it
-  if (reportVersion.pdfUrl) {
-    return res.json({
-      success: true,
-      data: { 
-        downloadUrl: reportVersion.pdfUrl,
-        version: requestedVersion,
-      },
-    });
+  // Check if report has been generated
+  if (!reportVersion.generatedAt) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Report PDF not yet generated. Please use /generate-pdf to create it.');
   }
 
-  // Check if PDF exists in storage
+  // Check expiry
+  const expiry = calculateExpiry(reportVersion.generatedAt);
+  
+  if (expiry.expired) {
+    throw new ApiError(
+      httpStatus.GONE, 
+      'Report has expired. Reports are available for 7 days after generation. Please regenerate the report.'
+    );
+  }
+
+  // Construct the path and generate presigned URL
   const pdfPath = storagePaths.generatedReport(
     user.organizationId.toString(),
     reportId,
@@ -141,9 +239,12 @@ const downloadReportPDF = catchAsync(async (req, res) => {
   const fileExists = await storage.exists(pdfPath).catch(() => false);
 
   if (fileExists) {
-    // Get presigned URL for existing PDF
+    // Generate presigned URL valid for remaining time or 1 hour (whichever is shorter)
+    const remainingSeconds = Math.floor((expiry.expiresAt.getTime() - Date.now()) / 1000);
+    const urlExpiresIn = Math.min(remainingSeconds, 3600); // Max 1 hour per download link
+
     const downloadUrl = await storage.getPresignedDownloadUrl(pdfPath, {
-      expiresIn: 3600, // 1 hour
+      expiresIn: urlExpiresIn,
       responseContentDisposition: `attachment; filename="inspection-report-${reportId}-v${requestedVersion}.pdf"`,
     });
 
@@ -152,12 +253,25 @@ const downloadReportPDF = catchAsync(async (req, res) => {
       data: { 
         downloadUrl,
         version: requestedVersion,
+        filename: `inspection-report-${reportId}-v${requestedVersion}.pdf`,
+        generatedAt: reportVersion.generatedAt,
+        expiresAt: expiry.expiresAt,
+        daysRemaining: expiry.daysRemaining,
+        hoursRemaining: expiry.hoursRemaining,
+        expiryMessage: expiry.daysRemaining > 1 
+          ? `This report expires in ${expiry.daysRemaining} days`
+          : expiry.daysRemaining === 1
+          ? `This report expires tomorrow`
+          : `This report expires in ${expiry.hoursRemaining} hours`,
       },
     });
   }
 
-  // PDF doesn't exist, generate it
-  throw new ApiError(httpStatus.NOT_FOUND, 'Report PDF not found. Please use /generate-pdf to create it.');
+  // PDF doesn't exist in storage (may have been cleaned up)
+  throw new ApiError(
+    httpStatus.GONE, 
+    'Report PDF has expired or been removed. Please regenerate the report using /generate-pdf.'
+  );
 });
 
 /**
@@ -305,6 +419,11 @@ const generateReportPDF = catchAsync(async (req, res) => {
 
   logger.info({ reportId, pdfPath, version: targetVersion }, 'PDF report generated and uploaded');
 
+  // Calculate expiry for the newly generated report
+  const generatedAt = new Date();
+  const expiresAt = new Date(generatedAt);
+  expiresAt.setDate(expiresAt.getDate() + REPORT_EXPIRY_DAYS);
+
   res.status(httpStatus.CREATED).json({
     success: true,
     data: {
@@ -312,6 +431,10 @@ const generateReportPDF = catchAsync(async (req, res) => {
       version: targetVersion,
       downloadUrl,
       isTrialVersion: isTrialUser,
+      generatedAt,
+      expiresAt,
+      daysRemaining: REPORT_EXPIRY_DAYS,
+      expiryMessage: `This report will be available for ${REPORT_EXPIRY_DAYS} days. Download or regenerate before ${expiresAt.toLocaleDateString()}.`,
     },
     message: isTrialUser
       ? 'Report generated with trial watermark. Upgrade to remove watermarks.'
@@ -395,6 +518,7 @@ const previewReportPDF = catchAsync(async (req, res) => {
 });
 
 module.exports = {
+  listReports,
   getReportByInspection,
   createReport,
   downloadReportPDF,

@@ -9,6 +9,28 @@ const router = express.Router();
 
 /**
  * @swagger
+ * /reports:
+ *   get:
+ *     summary: List all reports for the organization
+ *     tags: [Reports]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: Items per page
+ */
+router.get('/', auth(), reportController.listReports);
+
+/**
+ * @swagger
  * /reports/inspection/{inspectionId}:
  *   get:
  *     summary: Get report by inspection ID
