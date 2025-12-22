@@ -308,11 +308,25 @@ const addField = async (doc, field, margin) => {
       
     case 'rating':
       doc.fillColor(COLORS.muted);
-      const ratingValue = typeof field.value === 'number' ? field.value : 0;
-      const stars = '★'.repeat(ratingValue) + '☆'.repeat(5 - ratingValue);
+      let ratingValue = 0;
+      let ratingDisplay = '';
+      
+      if (typeof field.value === 'number') {
+        ratingValue = Math.min(5, Math.max(0, field.value));
+        ratingDisplay = '★'.repeat(ratingValue) + '☆'.repeat(5 - ratingValue);
+      } else if (typeof field.value === 'string') {
+        // Handle text ratings
+        const ratingMap = { excellent: 5, good: 4, fair: 3, poor: 2, critical: 1, needs_maintenance: 2, unrated: 0 };
+        ratingValue = ratingMap[field.value.toLowerCase()] || 0;
+        ratingDisplay = field.value.charAt(0).toUpperCase() + field.value.slice(1).replace(/_/g, ' ');
+        if (ratingValue > 0) {
+          ratingDisplay += ` (${'★'.repeat(ratingValue)}${'☆'.repeat(5 - ratingValue)})`;
+        }
+      }
+      
       doc.text(`${field.label}: `, margin, doc.y, { continued: true });
       doc.fillColor(COLORS.accent);
-      doc.text(stars);
+      doc.text(ratingDisplay || 'N/A');
       break;
       
     case 'date':
@@ -507,6 +521,16 @@ const generateInspectionReportPDF = async ({
     ],
   });
 
+  // Introduction section (if provided)
+  if (reportData?.introduction) {
+    sections.push({
+      title: 'Introduction',
+      fields: [
+        { label: '', value: reportData.introduction },
+      ],
+    });
+  }
+
   // Room sections
   if (inspection.rooms && inspection.rooms.length > 0) {
     sections.push({
@@ -516,35 +540,48 @@ const generateInspectionReportPDF = async ({
     });
 
     for (const room of inspection.rooms) {
-      const roomAnalysis = reportData?.rooms?.find(r => r.roomId === room._id?.toString());
+      // Collect all issues from room photos
+      const roomIssues = [];
+      for (const photo of (room.photos || [])) {
+        for (const issue of (photo.issues || [])) {
+          roomIssues.push(`${issue.label} (${issue.severity})`);
+        }
+      }
       
       sections.push({
         title: room.name || 'Unknown Room',
         fields: [
-          { label: 'Room Type', value: roomAnalysis?.classification || room.type || 'N/A' },
-          { label: 'Condition', value: roomAnalysis?.condition || 'Pending analysis', type: 'rating' },
+          { label: 'Condition Rating', value: room.conditionRating || 'Not rated' },
           { label: 'Photos', value: `${room.photos?.length || 0} photos captured` },
           { 
             label: 'Issues Found', 
-            value: roomAnalysis?.issues?.map(i => `${i.label} (${i.severity})`) || ['None detected'],
+            value: roomIssues.length > 0 ? roomIssues : ['None detected'],
             type: 'list'
           },
-          { label: 'AI Summary', value: roomAnalysis?.summary || 'Analysis pending' },
+          { label: 'AI Summary', value: room.aiSummary || 'No AI summary available' },
+          { label: 'Notes', value: room.notes || 'No additional notes' },
         ],
       });
     }
   }
 
-  // Summary section
+  // Report Summary section
   if (reportData?.summary) {
     sections.push({
-      title: 'Summary & Recommendations',
+      title: 'Summary',
       pageBreakBefore: true,
       fields: [
-        { label: 'Overall Condition', value: reportData.summary.overallCondition, type: 'rating' },
-        { label: 'Key Findings', value: reportData.summary.keyFindings || [], type: 'list' },
-        { label: 'Recommendations', value: reportData.summary.recommendations || 'None' },
-        { label: 'Priority Items', value: reportData.summary.priorityItems || [], type: 'list' },
+        { label: '', value: reportData.summary },
+      ],
+    });
+  }
+
+  // Conclusion section (if provided)
+  if (reportData?.conclusion) {
+    sections.push({
+      title: 'Conclusion & Recommendations',
+      fields: [
+        { label: '', value: reportData.conclusion },
       ],
     });
   }
