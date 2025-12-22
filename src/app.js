@@ -44,7 +44,28 @@ app.use(compression());
 
 // enable cors
 const corsOptions = {
-  origin: config.frontendUrl === '*' ? undefined : config.frontendUrl,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow all origins in development
+    if (config.frontendUrl === '*') return callback(null, true);
+    
+    // Allow exact match
+    if (origin === config.frontendUrl) return callback(null, true);
+    
+    // Allow Cloudflare Pages preview deployments (*.inspectai-8p7.pages.dev)
+    if (/^https:\/\/[a-z0-9-]+\.inspectai-8p7\.pages\.dev$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    // Allow localhost for development
+    if (/^http:\/\/localhost:\d+$/.test(origin)) {
+      return callback(null, true);
+    }
+    
+    callback(new Error('CORS not allowed'), false);
+  },
   credentials: true,
 };
 app.use(cors(corsOptions));
