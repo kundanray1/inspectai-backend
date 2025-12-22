@@ -14,5 +14,8 @@ module.exports.inspectionQueueBullMQ = require('../queues/inspection.bullmq');
 // AI Services
 module.exports.geminiService = require('./ai/gemini.service');
 
+// Usage and Billing
+module.exports.usageMeteringService = require('./usageMetering.service');
+
 // Queue Configuration
 module.exports.queueConfig = require('../queues/queue.config');

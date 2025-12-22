@@ -51,6 +51,65 @@ const userSchema = mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // Trial status tracking for freemium model
+    trialStatus: {
+      freeReportUsed: {
+        type: Boolean,
+        default: false,
+      },
+      freeReportGeneratedAt: {
+        type: Date,
+      },
+      freeReportId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Report',
+      },
+    },
+    // Usage statistics
+    usageStats: {
+      totalReportsGenerated: {
+        type: Number,
+        default: 0,
+      },
+      totalPhotosAnalyzed: {
+        type: Number,
+        default: 0,
+      },
+      totalInspectionsCreated: {
+        type: Number,
+        default: 0,
+      },
+      lastReportGeneratedAt: {
+        type: Date,
+      },
+    },
+    // Agent profile for home inspectors
+    agentProfile: {
+      licenseNumber: {
+        type: String,
+        trim: true,
+      },
+      companyName: {
+        type: String,
+        trim: true,
+      },
+      specializations: {
+        type: [String],
+        default: [],
+      },
+      serviceAreas: {
+        type: [String],
+        default: [],
+      },
+      phone: {
+        type: String,
+        trim: true,
+      },
+      website: {
+        type: String,
+        trim: true,
+      },
+    },
   },
   {
     timestamps: true,
@@ -89,6 +148,50 @@ userSchema.pre('save', async function (next) {
   }
   next();
 });
+
+/**
+ * Check if user has used their free trial report
+ * @returns {boolean}
+ */
+userSchema.methods.hasUsedFreeTrial = function () {
+  return this.trialStatus && this.trialStatus.freeReportUsed === true;
+};
+
+/**
+ * Mark free trial as used
+ * @param {ObjectId} reportId - The report ID
+ */
+userSchema.methods.markFreeTrialUsed = async function (reportId) {
+  this.trialStatus = {
+    freeReportUsed: true,
+    freeReportGeneratedAt: new Date(),
+    freeReportId: reportId,
+  };
+  await this.save();
+};
+
+/**
+ * Increment usage statistics
+ * @param {string} statType - Type of stat to increment
+ * @param {number} [amount=1] - Amount to increment by
+ */
+userSchema.methods.incrementUsage = async function (statType, amount = 1) {
+  const update = {};
+  const validStats = ['totalReportsGenerated', 'totalPhotosAnalyzed', 'totalInspectionsCreated'];
+  
+  if (!validStats.includes(statType)) {
+    throw new Error(`Invalid stat type: ${statType}`);
+  }
+
+  update[`usageStats.${statType}`] = (this.usageStats && this.usageStats[statType]) || 0;
+  update[`usageStats.${statType}`] += amount;
+  
+  if (statType === 'totalReportsGenerated') {
+    update['usageStats.lastReportGeneratedAt'] = new Date();
+  }
+
+  await this.updateOne({ $set: update });
+};
 
 /**
  * @typedef User
