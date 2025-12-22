@@ -16,6 +16,44 @@ const ensureStorageDir = () => {
   }
 };
 
+const buildFallbackSchema = (name = 'Inspection') => {
+  const safeName = name && typeof name === 'string' ? name.trim() : 'Inspection';
+  return {
+    title: `${safeName} flexible schema`,
+    sections: [
+      {
+        name: 'Custom section',
+        description: 'Add any fields, nested objects, or arrays that match your reporting requirements.',
+        fields: [],
+      },
+    ],
+    metadata: {
+      derivedFrom: 'fallback-template',
+      version: 1,
+      notes:
+        'Fallback generated because automatic schema extraction failed. Edit this schema to add the exact variables you need.',
+    },
+  };
+};
+
+const generateSchemaWithFallback = async ({ sampleReportPath, presetName }) => {
+  try {
+    const schema = await generateSchemaFromSampleReport({ filePath: sampleReportPath });
+    return {
+      schema,
+      generatedFromSample: true,
+      usedFallback: false,
+    };
+  } catch (error) {
+    logger.warn({ err: error }, 'Falling back to default schema template for report preset');
+    return {
+      schema: buildFallbackSchema(presetName),
+      generatedFromSample: false,
+      usedFallback: true,
+    };
+  }
+};
+
 const saveSampleReport = ({ file }) => {
   if (!file) {
     return null;
@@ -44,18 +82,25 @@ const createPreset = async ({ organizationId, userId, name, description, schema,
 
   let effectiveSchema = schema;
   let generatedFromSample = false;
+  let fallbackApplied = false;
 
   if (!effectiveSchema) {
     if (!sampleReportPath) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Schema or sample report is required');
     }
-    try {
-      effectiveSchema = await generateSchemaFromSampleReport({ filePath: sampleReportPath });
-      generatedFromSample = true;
-    } catch (error) {
-      logger.error({ err: error }, 'Failed to generate schema from sample report');
-      throw error;
-    }
+    const schemaResult = await generateSchemaWithFallback({ sampleReportPath, presetName: name });
+    effectiveSchema = schemaResult.schema;
+    generatedFromSample = schemaResult.generatedFromSample;
+    fallbackApplied = schemaResult.usedFallback;
+    logger.info(
+      {
+        schema: effectiveSchema,
+        generatedFromSample,
+        fallbackApplied,
+        presetName: name,
+      },
+      'Resolved schema for report preset creation'
+    );
   }
 
   const shouldBeDefault = Boolean(isDefault);
@@ -63,27 +108,42 @@ const createPreset = async ({ organizationId, userId, name, description, schema,
     await ReportPreset.updateMany({ organizationId }, { $set: { isDefault: false } });
   }
 
-  const preset = await ReportPreset.create({
+  const sanitizedSchema = JSON.parse(JSON.stringify(effectiveSchema));
+  const normalizedTags = Array.isArray(tags) ? tags.map((tag) => String(tag).trim()).filter(Boolean) : [];
+
+  const versionsPayload = [
+    {
+      version: 1,
+      schema: sanitizedSchema,
+      sourceFilePath: sampleReportPath || undefined,
+    },
+  ];
+
+  const preset = new ReportPreset({
     organizationId,
     createdBy: userId,
     name,
     description,
-    schema: effectiveSchema,
+    schema: sanitizedSchema,
     sampleReportPath,
-    tags,
+    tags: normalizedTags,
     isDefault: shouldBeDefault,
-    versions: [
-      {
-        version: 1,
-        schema: effectiveSchema,
-        sourceFilePath: sampleReportPath,
-      },
-    ],
+    versions: versionsPayload,
   });
+
+  try {
+    await preset.validate();
+  } catch (error) {
+    logger.error({ err: error, presetPayload: preset.toObject({ depopulate: true }) }, 'Report preset validation failed');
+    throw error;
+  }
+
+  await preset.save();
 
   return {
     ...preset.toObject(),
     schemaGenerated: generatedFromSample,
+    schemaFallbackApplied: fallbackApplied,
   };
 };
 

@@ -9,3 +9,6 @@ module.exports.planService = require('./plan.service');
 module.exports.jobService = require('./job.service');
 module.exports.reportPresetService = require('./reportPreset.service');
 module.exports.inspectionQueue = require('../queues/inspection.queue');
+
+// AI Services
+module.exports.geminiService = require('./ai/gemini.service');

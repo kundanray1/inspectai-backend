@@ -96,6 +96,17 @@ const generateSchemaFromSampleReport = async ({ filePath }) => {
     model: config.ollama.schemaModel,
   });
 
+  const preview = typeof rawResponse === 'string' ? rawResponse.slice(0, 4000) : rawResponse;
+  logger.info({ preview }, 'Ollama schema generation raw response preview');
+
+  try {
+    const debugPath = `${filePath}.ollama.raw.json`;
+    fs.writeFileSync(debugPath, rawResponse, { encoding: 'utf8' });
+    logger.info({ debugPath }, 'Saved Ollama raw schema output for debugging');
+  } catch (error) {
+    logger.warn({ err: error, filePath }, 'Failed to persist Ollama raw schema output');
+  }
+
   let schema;
   try {
     schema = JSON.parse(rawResponse);

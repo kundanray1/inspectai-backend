@@ -1,15 +1,5 @@
 const mongoose = require('mongoose');
 
-const schemaVersion = new mongoose.Schema(
-  {
-    version: { type: Number, required: true },
-    schema: { type: mongoose.Schema.Types.Mixed, required: true },
-    sourceFilePath: { type: String },
-    createdAt: { type: Date, default: Date.now },
-  },
-  { _id: false }
-);
-
 const reportPresetSchema = new mongoose.Schema(
   {
     organizationId: { type: String, required: true, index: true },
@@ -18,11 +8,15 @@ const reportPresetSchema = new mongoose.Schema(
     description: { type: String },
     schema: { type: mongoose.Schema.Types.Mixed, required: true },
     sampleReportPath: { type: String },
-    tags: { type: [String], default: [] },
+    tags: { type: [String], default: () => [] },
     isDefault: { type: Boolean, default: false },
-    versions: { type: [schemaVersion], default: [] },
+    versions: { type: [mongoose.Schema.Types.Mixed], default: () => [] },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    minimize: false,
+    strict: false,
+  }
 );
 
 reportPresetSchema.index({ organizationId: 1, name: 1 }, { unique: true });

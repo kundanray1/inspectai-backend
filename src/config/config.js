@@ -46,6 +46,13 @@ const envVarsSchema = Joi.object()
     OLLAMA_MODEL_SCHEMA: Joi.string().default('llama3.1').description('Ollama model for schema extraction'),
     OLLAMA_MODEL_INSPECTION: Joi.string().default('llama3.1').description('Ollama model for inspection generation'),
     OLLAMA_TIMEOUT_MS: Joi.number().integer().min(1000).default(120000).description('Timeout for Ollama requests'),
+    // Gemini AI Configuration
+    GEMINI_API_KEY: Joi.string().description('Google Gemini API key'),
+    GEMINI_MODEL: Joi.string().default('gemini-1.5-flash').description('Gemini model to use'),
+    GEMINI_VISION_MODEL: Joi.string().default('gemini-1.5-flash').description('Gemini vision model for image analysis'),
+    GEMINI_RATE_LIMIT_RPM: Joi.number().integer().min(1).default(15).description('Gemini API rate limit (requests per minute)'),
+    GEMINI_TIMEOUT_MS: Joi.number().integer().min(1000).default(60000).description('Timeout for Gemini requests'),
+    GEMINI_MAX_RETRIES: Joi.number().integer().min(0).default(3).description('Maximum retry attempts for Gemini requests'),
     INSPECTION_QUEUE_EXCHANGE: Joi.string().default('inspectai.inspection').description('Inspection queue exchange name'),
     INSPECTION_QUEUE_NAME: Joi.string().default('inspectai.inspection.analysis').description('Inspection queue name'),
     INSPECTION_QUEUE_ROUTING_KEY: Joi.string().default('inspection.analysis').description('Inspection queue routing key'),
@@ -124,6 +131,14 @@ module.exports = {
     schemaModel: envVars.OLLAMA_MODEL_SCHEMA,
     inspectionModel: envVars.OLLAMA_MODEL_INSPECTION,
     timeoutMs: envVars.OLLAMA_TIMEOUT_MS,
+  },
+  gemini: {
+    apiKey: envVars.GEMINI_API_KEY,
+    model: envVars.GEMINI_MODEL,
+    visionModel: envVars.GEMINI_VISION_MODEL,
+    rateLimitRpm: envVars.GEMINI_RATE_LIMIT_RPM,
+    timeoutMs: envVars.GEMINI_TIMEOUT_MS,
+    maxRetries: envVars.GEMINI_MAX_RETRIES,
   },
   queues: {
     inspection: {
