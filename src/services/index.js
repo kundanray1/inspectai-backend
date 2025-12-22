@@ -9,6 +9,10 @@ module.exports.planService = require('./plan.service');
 module.exports.jobService = require('./job.service');
 module.exports.reportPresetService = require('./reportPreset.service');
 module.exports.inspectionQueue = require('../queues/inspection.queue');
+module.exports.inspectionQueueBullMQ = require('../queues/inspection.bullmq');
 
 // AI Services
 module.exports.geminiService = require('./ai/gemini.service');
+
+// Queue Configuration
+module.exports.queueConfig = require('../queues/queue.config');

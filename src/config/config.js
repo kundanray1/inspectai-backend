@@ -33,15 +33,27 @@ const envVarsSchema = Joi.object()
     STRIPE_PRICE_PRO: Joi.string().description('Stripe price id for pro plan'),
     STRIPE_BILLING_RETURN_URL: Joi.string().uri().description('Return URL after billing portal/checkout'),
     STRIPE_WEBHOOK_SECRET: Joi.string().description('Stripe webhook signing secret'),
-    RABBITMQ_URL: Joi.string().default('amqp://localhost:5672').description('AMQP connection string'),
-    RABBITMQ_PREFETCH: Joi.number().integer().min(1).default(5).description('RabbitMQ prefetch count for workers'),
+    RABBITMQ_URL: Joi.string().default('amqp://localhost:5672').description('AMQP connection string (deprecated)'),
+    RABBITMQ_PREFETCH: Joi.number().integer().min(1).default(5).description('RabbitMQ prefetch count (deprecated)'),
     RABBITMQ_AUTO_START: Joi.boolean()
       .truthy('true')
       .truthy('1')
       .falsy('false')
       .falsy('0')
       .default(true)
-      .description('Attempt to auto-start local RabbitMQ via Docker'),
+      .description('Attempt to auto-start local RabbitMQ via Docker (deprecated)'),
+    // Redis Configuration (for BullMQ)
+    REDIS_URL: Joi.string().default('redis://localhost:6379').description('Redis connection URL'),
+    REDIS_HOST: Joi.string().default('localhost').description('Redis host'),
+    REDIS_PORT: Joi.number().integer().default(6379).description('Redis port'),
+    REDIS_PASSWORD: Joi.string().allow('').description('Redis password'),
+    REDIS_TLS: Joi.boolean()
+      .truthy('true')
+      .truthy('1')
+      .falsy('false')
+      .falsy('0')
+      .default(false)
+      .description('Enable TLS for Redis connection'),
     OLLAMA_URL: Joi.string().uri().default('http://localhost:11434').description('Base URL for local Ollama instance'),
     OLLAMA_MODEL_SCHEMA: Joi.string().default('llama3.1').description('Ollama model for schema extraction'),
     OLLAMA_MODEL_INSPECTION: Joi.string().default('llama3.1').description('Ollama model for inspection generation'),
@@ -132,6 +144,13 @@ module.exports = {
     url: envVars.RABBITMQ_URL,
     prefetch: envVars.RABBITMQ_PREFETCH,
     autoStart: envVars.RABBITMQ_AUTO_START,
+  },
+  redis: {
+    url: envVars.REDIS_URL,
+    host: envVars.REDIS_HOST,
+    port: envVars.REDIS_PORT,
+    password: envVars.REDIS_PASSWORD || undefined,
+    tls: envVars.REDIS_TLS,
   },
   ollama: {
     url: envVars.OLLAMA_URL,
