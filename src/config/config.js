@@ -101,8 +101,9 @@ module.exports = {
   mongoose: {
     url: envVars.MONGODB_URL + (envVars.NODE_ENV === 'test' ? '-test' : ''),
     options: {
-      // Options removed - these are default in Mongoose 6+
-      // useCreateIndex, useNewUrlParser, useUnifiedTopology are no longer needed
+      useCreateIndex: true,
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     },
   },
   jwt: {
