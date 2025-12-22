@@ -404,31 +404,49 @@ async function processInspectionJob(job) {
   }
 }
 
+// Startup
+logger.info('=== INSPECTION WORKER STARTING ===');
+logger.info({ 
+  nodeVersion: process.version,
+  pid: process.pid,
+  env: process.env.NODE_ENV,
+});
+
 // Connect to MongoDB
 mongoose
   .connect(config.mongoose.url, config.mongoose.options)
   .then(() => {
-    logger.info('Connected to MongoDB for worker');
+    logger.info('Worker connected to MongoDB');
   })
   .catch((err) => {
-    logger.error({ err }, 'MongoDB connection error in worker');
+    logger.error({ err: err.message }, 'Worker MongoDB connection failed');
     process.exit(1);
   });
 
 // Create BullMQ worker - use same queue name and connection as API
 const QUEUE_NAME = QUEUE_NAMES.INSPECTION_PROCESS;
 
-// Use the shared Redis connection from queue config
-const redisConnection = getRedisConnection();
+logger.info({ queueName: QUEUE_NAME }, 'Creating BullMQ worker...');
 
-const worker = new Worker(
-  QUEUE_NAME,
-  processInspectionJob,
-  {
-    connection: redisConnection,
-    concurrency: 2,
-  }
-);
+let worker;
+try {
+  // Use the shared Redis connection from queue config
+  const redisConnection = getRedisConnection();
+  logger.info('Got Redis connection for worker');
+
+  worker = new Worker(
+    QUEUE_NAME,
+    processInspectionJob,
+    {
+      connection: redisConnection,
+      concurrency: 2,
+    }
+  );
+  logger.info('Worker created successfully');
+} catch (err) {
+  logger.error({ err: err.message, stack: err.stack }, 'FATAL: Failed to create worker');
+  process.exit(1);
+}
 
 worker.on('ready', () => {
   logger.info({ queueName: QUEUE_NAME }, 'Worker is ready and listening for jobs');
