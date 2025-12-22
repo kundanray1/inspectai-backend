@@ -414,17 +414,21 @@ mongoose
     process.exit(1);
   });
 
-// Create BullMQ worker
+// Create BullMQ worker - MUST match queue name from inspection.bullmq.js
+const QUEUE_NAME = 'inspection-process'; // Must match QUEUE_NAMES.INSPECTION_PROCESS
+
 const redisConfig = new URL(redisUrl);
 
 const worker = new Worker(
-  'inspection-analysis',
+  QUEUE_NAME,
   processInspectionJob,
   {
     connection: {
       host: redisConfig.hostname,
       port: parseInt(redisConfig.port, 10) || 6379,
       password: redisConfig.password || undefined,
+      maxRetriesPerRequest: null, // Required by BullMQ
+      enableReadyCheck: false,
     },
     concurrency: 2,
   }
@@ -442,7 +446,7 @@ worker.on('error', (err) => {
   logger.error({ err: err.message }, 'Worker error');
 });
 
-logger.info({ redisUrl: redisConfig.hostname }, 'BullMQ inspection worker started');
+logger.info({ redisHost: redisConfig.hostname, queueName: QUEUE_NAME }, 'BullMQ inspection worker started');
 
 process.on('SIGINT', async () => {
   logger.info('Worker received SIGINT, closing...');
