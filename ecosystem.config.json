@@ -1,7 +1,7 @@
 {
   "apps": [
     {
-      "name": "app",
+      "name": "api",
       "script": "src/index.js",
       "instances": 1,
       "autorestart": true,
@@ -13,8 +13,8 @@
     },
     {
       "name": "inspection-worker",
-      "script": "workers/inspectionWorker.js",
-      "instances": 2,
+      "script": "workers/inspectionWorker.bullmq.js",
+      "instances": 1,
       "autorestart": true,
       "watch": false,
       "time": true,
