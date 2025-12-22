@@ -79,6 +79,7 @@
     "passport-jwt": "^4.0.0",
     "pdf-parse": "^1.1.1",
     "pdf-to-img": "^5.0.0",
+    "pdfkit": "^0.17.2",
     "pm2": "^5.1.0",
     "socket.io": "^4.7.5",
     "stripe": "^14.19.0",

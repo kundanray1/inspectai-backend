@@ -14,6 +14,9 @@ module.exports.inspectionQueueBullMQ = require('../queues/inspection.bullmq');
 // AI Services
 module.exports.geminiService = require('./ai/gemini.service');
 
+// PDF Services
+module.exports.pdfExportService = require('./pdf/pdfExport.service');
+
 // Usage and Billing
 module.exports.usageMeteringService = require('./usageMetering.service');
 
