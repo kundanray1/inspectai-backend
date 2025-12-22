@@ -1,8 +1,5 @@
 FROM node:20-alpine
 
-# Install PM2 globally
-RUN npm install -g pm2
-
 RUN mkdir -p /usr/src/node-app && chown -R node:node /usr/src/node-app
 
 WORKDIR /usr/src/node-app
@@ -17,5 +14,8 @@ COPY --chown=node:node . .
 
 EXPOSE 3000
 
-# Run both API and worker using PM2
-CMD ["pm2-runtime", "ecosystem.config.json"]
+# Enable embedded worker (runs in same process as API)
+ENV EMBEDDED_WORKER=true
+
+# Run API with embedded worker
+CMD ["node", "src/index.js"]
