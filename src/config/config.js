@@ -60,8 +60,8 @@ const envVarsSchema = Joi.object()
     OLLAMA_TIMEOUT_MS: Joi.number().integer().min(1000).default(120000).description('Timeout for Ollama requests'),
     // Gemini AI Configuration
     GEMINI_API_KEY: Joi.string().description('Google Gemini API key'),
-    GEMINI_MODEL: Joi.string().default('gemini-1.5-flash').description('Gemini model to use'),
-    GEMINI_VISION_MODEL: Joi.string().default('gemini-1.5-flash').description('Gemini vision model for image analysis'),
+    GEMINI_MODEL: Joi.string().default('gemini-2.5-flash').description('Gemini model to use'),
+    GEMINI_VISION_MODEL: Joi.string().default('gemini-2.5-flash').description('Gemini vision model for image analysis'),
     GEMINI_RATE_LIMIT_RPM: Joi.number().integer().min(1).default(15).description('Gemini API rate limit (requests per minute)'),
     GEMINI_TIMEOUT_MS: Joi.number().integer().min(1000).default(60000).description('Timeout for Gemini requests'),
     GEMINI_MAX_RETRIES: Joi.number().integer().min(0).default(3).description('Maximum retry attempts for Gemini requests'),
