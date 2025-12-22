@@ -45,7 +45,19 @@ class R2Storage extends StorageInterface {
 
     const { accountId, accessKeyId, secretAccessKey } = config.storage.r2;
 
+    logger.debug({
+      hasAccountId: !!accountId,
+      hasAccessKeyId: !!accessKeyId,
+      hasSecretAccessKey: !!secretAccessKey,
+      storageProvider: config.storage.provider,
+    }, 'R2 credentials check');
+
     if (!accountId || !accessKeyId || !secretAccessKey) {
+      logger.error({
+        accountId: accountId ? 'set' : 'missing',
+        accessKeyId: accessKeyId ? 'set' : 'missing',
+        secretAccessKey: secretAccessKey ? 'set' : 'missing',
+      }, 'R2 storage credentials missing');
       throw new ApiError(
         httpStatus.SERVICE_UNAVAILABLE,
         'R2 storage not configured. Missing credentials.'
