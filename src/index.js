@@ -18,6 +18,15 @@ const startServer = async () => {
     await mongoose.connect(config.mongoose.url, config.mongoose.options);
     logger.info('Connected to MongoDB');
 
+    // Log storage configuration
+    logger.info({
+      storageProvider: config.storage.provider,
+      r2AccountId: config.storage.r2?.accountId ? 'configured' : 'MISSING',
+      r2AccessKeyId: config.storage.r2?.accessKeyId ? 'configured' : 'MISSING',
+      r2SecretAccessKey: config.storage.r2?.secretAccessKey ? 'configured' : 'MISSING',
+      r2Bucket: config.storage.r2?.bucket || 'MISSING',
+    }, 'Storage configuration');
+
     // Bootstrap data
     await ensureSuperAdmin();
     await ensureDefaultPlans();
