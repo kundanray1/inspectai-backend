@@ -58,7 +58,7 @@ router.get('/:reportId/download', auth(), reportController.downloadReportPDF);
 router.post(
   '/:reportId/generate-pdf',
   auth(),
-  requireSubscriptionOrTrial('reportGeneration'),
+  requireSubscriptionOrTrial,
   reportController.generateReportPDF
 );
 
