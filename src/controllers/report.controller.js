@@ -236,28 +236,44 @@ const generateReportPDF = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, `PDF generation failed: ${pdfError.message}`);
   }
 
+  logger.info({ reportId, pdfSize: pdfBuffer?.length }, 'PDF buffer generated');
+
   // Upload to storage
-  const pdfPath = storagePaths.generatedReport(
-    user.organizationId.toString(),
-    reportId,
-    targetVersion
-  );
+  let pdfPath;
+  let downloadUrl;
 
-  const storage = getStorage();
-  await storage.upload(pdfPath, pdfBuffer, {
-    contentType: 'application/pdf',
-    metadata: {
-      reportId: reportId,
-      generatedAt: new Date().toISOString(),
-      version: String(targetVersion),
-    },
-  });
+  try {
+    pdfPath = storagePaths.generatedReport(
+      user.organizationId.toString(),
+      reportId,
+      targetVersion
+    );
 
-  // Get download URL
-  const downloadUrl = await storage.getPresignedDownloadUrl(pdfPath, {
-    expiresIn: 3600,
-    responseContentDisposition: `attachment; filename="inspection-report-${reportId}-v${targetVersion}.pdf"`,
-  });
+    logger.info({ pdfPath }, 'Uploading PDF to storage');
+
+    const storage = getStorage();
+    await storage.upload(pdfPath, pdfBuffer, {
+      contentType: 'application/pdf',
+      metadata: {
+        reportId: reportId,
+        generatedAt: new Date().toISOString(),
+        version: String(targetVersion),
+      },
+    });
+
+    logger.info({ pdfPath }, 'PDF uploaded successfully');
+
+    // Get download URL
+    downloadUrl = await storage.getPresignedDownloadUrl(pdfPath, {
+      expiresIn: 3600,
+      responseContentDisposition: `attachment; filename="inspection-report-${reportId}-v${targetVersion}.pdf"`,
+    });
+
+    logger.info({ downloadUrl: downloadUrl?.substring(0, 100) }, 'Got presigned download URL');
+  } catch (storageError) {
+    logger.error({ err: storageError, pdfPath }, 'Storage operation failed');
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, `Storage operation failed: ${storageError.message}`);
+  }
 
   // Update report version with PDF URL and watermark status
   const versionIndex = report.versions.findIndex(v => v.version === targetVersion);
