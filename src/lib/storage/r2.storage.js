@@ -296,10 +296,17 @@ class R2Storage extends StorageInterface {
     const client = this.getClient();
     const expiresIn = options.expiresIn || 3600;
 
-    const command = new GetObjectCommand({
+    const commandParams = {
       Bucket: this.bucket,
       Key: key,
-    });
+    };
+
+    // Add optional response content disposition for file download name
+    if (options.responseContentDisposition) {
+      commandParams.ResponseContentDisposition = options.responseContentDisposition;
+    }
+
+    const command = new GetObjectCommand(commandParams);
 
     try {
       return await getSignedUrl(client, command, { expiresIn });
