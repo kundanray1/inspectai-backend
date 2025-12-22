@@ -60,16 +60,23 @@ const ROOM_CLASSIFICATIONS = [
 async function getImageFromR2(storagePath) {
   try {
     logger.info({ storagePath }, 'Downloading image from R2');
-    const buffer = await storage.download(storagePath);
+    const result = await storage.download(storagePath);
+    
+    // download() returns { data: Buffer, contentType, size, metadata }
+    const buffer = result.data;
     const base64 = buffer.toString('base64');
     
-    // Detect mime type from path
-    const ext = storagePath.split('.').pop()?.toLowerCase();
-    const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    // Use content type from R2 or detect from path
+    let mimeType = result.contentType;
+    if (!mimeType) {
+      const ext = storagePath.split('.').pop()?.toLowerCase();
+      mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    }
     
+    logger.info({ storagePath, mimeType, size: result.size }, 'Image downloaded successfully');
     return { base64, mimeType };
   } catch (error) {
-    logger.error({ err: error, storagePath }, 'Failed to download image from R2');
+    logger.error({ err: error.message, storagePath }, 'Failed to download image from R2');
     return null;
   }
 }
