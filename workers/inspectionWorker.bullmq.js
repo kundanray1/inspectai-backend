@@ -1,13 +1,29 @@
 /* eslint-disable no-console */
 const { Worker } = require('bullmq');
 const mongoose = require('mongoose');
+const Redis = require('ioredis');
 const logger = require('../src/config/logger');
 const config = require('../src/config/config');
 const { jobService, reportPresetService } = require('../src/services');
 const { Inspection } = require('../src/models/inspection.model');
 const geminiService = require('../src/services/ai/gemini.service');
-const fs = require('fs');
-const path = require('path');
+const R2Storage = require('../src/lib/storage/r2.storage');
+
+// Initialize R2 storage
+const storage = new R2Storage();
+
+// Redis for pub/sub socket events
+const redisUrl = config.redis?.url || process.env.REDIS_URL || 'redis://localhost:6379';
+const pubClient = new Redis(redisUrl);
+
+// Emit socket events via Redis pub/sub
+const emitSocketEvent = (inspectionId, event, payload) => {
+  pubClient.publish('socket:events', JSON.stringify({
+    channel: `inspection:${inspectionId}`,
+    event,
+    payload,
+  }));
+};
 
 // Standard room classifications
 const ROOM_CLASSIFICATIONS = [
@@ -38,19 +54,35 @@ const ROOM_CLASSIFICATIONS = [
 ];
 
 /**
+ * Download image from R2 and return base64
+ */
+async function getImageFromR2(storagePath) {
+  try {
+    logger.info({ storagePath }, 'Downloading image from R2');
+    const buffer = await storage.download(storagePath);
+    const base64 = buffer.toString('base64');
+    
+    // Detect mime type from path
+    const ext = storagePath.split('.').pop()?.toLowerCase();
+    const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    
+    return { base64, mimeType };
+  } catch (error) {
+    logger.error({ err: error, storagePath }, 'Failed to download image from R2');
+    return null;
+  }
+}
+
+/**
  * Use Gemini Vision to classify a room from an image
  */
-async function classifyRoomFromImage(imagePath) {
+async function classifyRoomFromImage(storagePath) {
   try {
-    if (!fs.existsSync(imagePath)) {
-      logger.warn({ imagePath }, 'Image file not found for classification');
-      return { roomType: 'Other', confidence: 0.5 };
+    const imageData = await getImageFromR2(storagePath);
+    if (!imageData) {
+      logger.warn({ storagePath }, 'Could not download image for classification');
+      return { roomType: 'Other', confidence: 0.5, features: [] };
     }
-
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-    const ext = path.extname(imagePath).toLowerCase();
-    const mimeType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
 
     const prompt = `Analyze this property inspection photo and classify what room or area it shows.
     
@@ -66,7 +98,7 @@ Respond with ONLY a JSON object in this exact format:
 
     const result = await geminiService.generateWithVision({
       prompt,
-      images: [{ mimeType, data: base64Image }],
+      images: [{ mimeType: imageData.mimeType, data: imageData.base64 }],
     });
 
     // Parse the JSON response
@@ -81,7 +113,7 @@ Respond with ONLY a JSON object in this exact format:
 
     return { roomType: 'Other', confidence: 0.5, features: [] };
   } catch (error) {
-    logger.error({ err: error, imagePath }, 'Failed to classify room from image');
+    logger.error({ err: error, storagePath }, 'Failed to classify room from image');
     return { roomType: 'Other', confidence: 0.3, features: [] };
   }
 }
@@ -89,17 +121,13 @@ Respond with ONLY a JSON object in this exact format:
 /**
  * Use Gemini Vision to analyze an image for issues
  */
-async function analyzeImageForIssues(imagePath, roomType) {
+async function analyzeImageForIssues(storagePath, roomType) {
   try {
-    if (!fs.existsSync(imagePath)) {
-      logger.warn({ imagePath }, 'Image file not found for analysis');
-      return { issues: [], condition: 'unrated', summary: '' };
+    const imageData = await getImageFromR2(storagePath);
+    if (!imageData) {
+      logger.warn({ storagePath }, 'Could not download image for analysis');
+      return { issues: [], condition: 'unrated', summary: 'Image not available' };
     }
-
-    const imageBuffer = fs.readFileSync(imagePath);
-    const base64Image = imageBuffer.toString('base64');
-    const ext = path.extname(imagePath).toLowerCase();
-    const mimeType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
 
     const prompt = `You are a professional property inspector analyzing a ${roomType} photo.
 
@@ -122,7 +150,7 @@ Respond with ONLY a JSON object in this exact format:
 
     const result = await geminiService.generateWithVision({
       prompt,
-      images: [{ mimeType, data: base64Image }],
+      images: [{ mimeType: imageData.mimeType, data: imageData.base64 }],
     });
 
     // Parse the JSON response
@@ -133,7 +161,7 @@ Respond with ONLY a JSON object in this exact format:
 
     return { issues: [], condition: 'unrated', summary: 'Unable to analyze image' };
   } catch (error) {
-    logger.error({ err: error, imagePath }, 'Failed to analyze image for issues');
+    logger.error({ err: error, storagePath }, 'Failed to analyze image for issues');
     return { issues: [], condition: 'unrated', summary: 'Analysis failed' };
   }
 }
@@ -146,14 +174,18 @@ async function processInspectionJob(job) {
   const { photoIds, aiClassificationMode } = payload;
 
   try {
-    logger.info({ jobId, aiClassificationMode }, 'Processing inspection job');
+    logger.info({ jobId, inspectionId, photoCount: photoIds?.length, aiClassificationMode }, 'Processing inspection job');
 
+    // Update job status
     await jobService.updateJobProgress({
       jobId,
       status: 'processing',
       progress: 5,
       message: aiClassificationMode ? 'Starting AI room classification...' : 'Starting photo analysis...',
     });
+
+    // Emit socket event
+    emitSocketEvent(inspectionId, 'job.processing', { jobId, progress: 5, message: 'Starting analysis...' });
 
     const inspection = await Inspection.findOne({ _id: inspectionId, organizationId });
     if (!inspection) {
@@ -170,6 +202,12 @@ async function processInspectionJob(job) {
       }
     }
 
+    if (photosToProcess.length === 0) {
+      logger.warn({ jobId, photoIds }, 'No photos found to process');
+      await jobService.markJobCompleted({ jobId, result: { message: 'No photos to process' } });
+      return { message: 'No photos to process' };
+    }
+
     const totalPhotos = photosToProcess.length;
     const roomClassifications = new Map(); // roomType -> [photos]
 
@@ -178,12 +216,24 @@ async function processInspectionJob(job) {
       const { photo, originalRoom } = photosToProcess[i];
       const progress = Math.round(((i + 1) / totalPhotos) * 80) + 10;
 
+      const progressMessage = `Processing photo ${i + 1}/${totalPhotos}: ${photo.originalFilename}`;
+      
       await jobService.updateJobProgress({
         jobId,
         processedUnits: i + 1,
         totalUnits: totalPhotos,
         progress,
-        message: `Processing photo ${i + 1}/${totalPhotos}: ${photo.originalFilename}`,
+        message: progressMessage,
+      });
+
+      // Emit real-time socket event
+      emitSocketEvent(inspectionId, 'job.progress', {
+        jobId,
+        progress,
+        processedUnits: i + 1,
+        totalUnits: totalPhotos,
+        message: progressMessage,
+        currentPhoto: photo.originalFilename,
       });
 
       let roomType = originalRoom.name;
@@ -194,6 +244,12 @@ async function processInspectionJob(job) {
         classification = await classifyRoomFromImage(photo.storagePath);
         roomType = classification.roomType;
         logger.info({ photoId: photo._id, roomType, confidence: classification.confidence }, 'Classified photo');
+        
+        emitSocketEvent(inspectionId, 'photo.classified', {
+          photoId: photo._id.toString(),
+          roomType,
+          confidence: classification.confidence,
+        });
       }
 
       // Analyze for issues
@@ -208,6 +264,15 @@ async function processInspectionJob(job) {
       photo.positives = analysis.positives || [];
       photo.pendingClassification = false;
 
+      // Emit photo analyzed event
+      emitSocketEvent(inspectionId, 'photo.analyzed', {
+        photoId: photo._id.toString(),
+        roomType,
+        issues: analysis.issues?.length || 0,
+        condition: analysis.condition,
+        summary: analysis.summary,
+      });
+
       // Group by room type for reorganization
       if (!roomClassifications.has(roomType)) {
         roomClassifications.set(roomType, []);
@@ -218,6 +283,12 @@ async function processInspectionJob(job) {
     // Reorganize photos into proper rooms if in AI classification mode
     if (aiClassificationMode) {
       await jobService.updateJobProgress({
+        jobId,
+        progress: 90,
+        message: 'Organizing photos into rooms...',
+      });
+
+      emitSocketEvent(inspectionId, 'job.progress', {
         jobId,
         progress: 90,
         message: 'Organizing photos into rooms...',
@@ -246,11 +317,16 @@ async function processInspectionJob(job) {
             photos: [],
           });
           room = inspection.rooms[inspection.rooms.length - 1];
+          
+          emitSocketEvent(inspectionId, 'room.created', {
+            roomId: room._id?.toString(),
+            name: roomType,
+            photoCount: photoData.length,
+          });
         }
 
         // Move photos to this room
-        for (const { photo, analysis } of photoData) {
-          // Add photo to room
+        for (const { photo } of photoData) {
           room.photos.push({
             ...photo.toObject(),
             _id: photo._id,
@@ -292,12 +368,37 @@ async function processInspectionJob(job) {
     };
 
     await jobService.markJobCompleted({ jobId, result, message: 'Analysis completed' });
+    
+    // Emit completion event
+    emitSocketEvent(inspectionId, 'job.completed', {
+      jobId,
+      result,
+      message: 'Analysis completed successfully',
+    });
+
+    // Emit inspection updated event for UI refresh
+    emitSocketEvent(inspectionId, 'inspection.updated', {
+      inspectionId,
+      rooms: inspection.rooms.map(r => ({
+        id: r._id?.toString(),
+        name: r.name,
+        photoCount: r.photos.length,
+        condition: r.conditionRating,
+      })),
+    });
+
     logger.info({ jobId, result }, 'Inspection job completed');
 
     return result;
   } catch (error) {
     logger.error({ err: error, jobId }, 'Inspection job failed');
     await jobService.markJobFailed({ jobId, error });
+    
+    emitSocketEvent(inspectionId, 'job.failed', {
+      jobId,
+      error: error.message,
+    });
+    
     throw error;
   }
 }
@@ -314,7 +415,6 @@ mongoose
   });
 
 // Create BullMQ worker
-const redisUrl = config.redis?.url || process.env.REDIS_URL || 'redis://localhost:6379';
 const redisConfig = new URL(redisUrl);
 
 const worker = new Worker(
@@ -335,18 +435,19 @@ worker.on('completed', (job, result) => {
 });
 
 worker.on('failed', (job, err) => {
-  logger.error({ jobId: job?.data?.jobId, err }, 'Worker job failed');
+  logger.error({ jobId: job?.data?.jobId, err: err.message }, 'Worker job failed');
 });
 
 worker.on('error', (err) => {
-  logger.error({ err }, 'Worker error');
+  logger.error({ err: err.message }, 'Worker error');
 });
 
-logger.info('BullMQ inspection worker started');
+logger.info({ redisUrl: redisConfig.hostname }, 'BullMQ inspection worker started');
 
 process.on('SIGINT', async () => {
   logger.info('Worker received SIGINT, closing...');
   await worker.close();
+  await pubClient.quit();
   await mongoose.disconnect();
   process.exit(0);
 });
@@ -354,6 +455,7 @@ process.on('SIGINT', async () => {
 process.on('SIGTERM', async () => {
   logger.info('Worker received SIGTERM, closing...');
   await worker.close();
+  await pubClient.quit();
   await mongoose.disconnect();
   process.exit(0);
 });
