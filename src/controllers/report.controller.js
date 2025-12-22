@@ -190,6 +190,15 @@ const generateReportPDF = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Inspection not found for this report');
   }
 
+  // Log inspection data for debugging
+  logger.info({ 
+    inspectionId: inspection._id,
+    hasRooms: Boolean(inspection.rooms),
+    roomsCount: inspection.rooms?.length || 0,
+    hasProperty: Boolean(inspection.propertyId),
+    propertyAddress: inspection.propertyId?.address?.line1 || 'N/A'
+  }, 'Inspection data for PDF generation');
+
   // Check subscription status for watermark
   const subscription = await Subscription.findOne({
     organizationId: user.organizationId,
@@ -215,9 +224,14 @@ const generateReportPDF = catchAsync(async (req, res) => {
 
   let pdfBuffer;
   try {
+    // Safely convert inspection to object
+    const inspectionData = typeof inspection.toObject === 'function' 
+      ? inspection.toObject() 
+      : inspection;
+    
     pdfBuffer = await pdfExportService.generateInspectionReportPDF({
       inspection: {
-        ...inspection.toObject(),
+        ...inspectionData,
         property: inspection.propertyId,
         inspector: user,
       },
