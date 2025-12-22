@@ -55,12 +55,42 @@ const DEFAULT_JOB_OPTIONS = {
 
 /**
  * Get Redis connection options
+ * Prefers REDIS_URL if available, falls back to host/port config
  * @returns {Object}
  */
 const getRedisOptions = () => {
+  const redisUrl = config.redis.url || process.env.REDIS_URL;
+  
+  // If we have a URL, parse it
+  if (redisUrl && redisUrl !== 'redis://localhost:6379') {
+    try {
+      const url = new URL(redisUrl);
+      const options = {
+        host: url.hostname,
+        port: parseInt(url.port, 10) || 6379,
+        maxRetriesPerRequest: null, // Required by BullMQ
+        enableReadyCheck: false,
+      };
+      
+      if (url.password) {
+        options.password = url.password;
+      }
+      
+      if (url.protocol === 'rediss:') {
+        options.tls = {};
+      }
+      
+      logger.info({ host: options.host, port: options.port }, 'Using Redis URL for BullMQ');
+      return options;
+    } catch (e) {
+      logger.warn({ redisUrl }, 'Failed to parse Redis URL, falling back to host/port');
+    }
+  }
+  
+  // Fallback to host/port config
   const options = {
-    host: config.redis.host,
-    port: config.redis.port,
+    host: config.redis.host || 'localhost',
+    port: config.redis.port || 6379,
     maxRetriesPerRequest: null, // Required by BullMQ
     enableReadyCheck: false,
   };
