@@ -49,6 +49,8 @@
     "prettier"
   ],
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.956.0",
+    "@aws-sdk/s3-request-presigner": "^3.956.0",
     "@google/generative-ai": "^0.24.1",
     "abort-controller": "^3.0.0",
     "amqplib": "^0.10.9",

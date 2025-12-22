@@ -53,6 +53,13 @@ const envVarsSchema = Joi.object()
     GEMINI_RATE_LIMIT_RPM: Joi.number().integer().min(1).default(15).description('Gemini API rate limit (requests per minute)'),
     GEMINI_TIMEOUT_MS: Joi.number().integer().min(1000).default(60000).description('Timeout for Gemini requests'),
     GEMINI_MAX_RETRIES: Joi.number().integer().min(0).default(3).description('Maximum retry attempts for Gemini requests'),
+    // Cloudflare R2 Storage Configuration
+    CLOUDFLARE_ACCOUNT_ID: Joi.string().description('Cloudflare account ID'),
+    CLOUDFLARE_R2_ACCESS_KEY: Joi.string().description('R2 access key ID'),
+    CLOUDFLARE_R2_SECRET_KEY: Joi.string().description('R2 secret access key'),
+    CLOUDFLARE_R2_BUCKET: Joi.string().default('inspectai').description('R2 bucket name'),
+    CLOUDFLARE_R2_PUBLIC_URL: Joi.string().uri().description('Public URL for R2 bucket (if using custom domain)'),
+    STORAGE_PROVIDER: Joi.string().valid('local', 'r2', 's3').default('local').description('Storage provider to use'),
     INSPECTION_QUEUE_EXCHANGE: Joi.string().default('inspectai.inspection').description('Inspection queue exchange name'),
     INSPECTION_QUEUE_NAME: Joi.string().default('inspectai.inspection.analysis').description('Inspection queue name'),
     INSPECTION_QUEUE_ROUTING_KEY: Joi.string().default('inspection.analysis').description('Inspection queue routing key'),
@@ -139,6 +146,16 @@ module.exports = {
     rateLimitRpm: envVars.GEMINI_RATE_LIMIT_RPM,
     timeoutMs: envVars.GEMINI_TIMEOUT_MS,
     maxRetries: envVars.GEMINI_MAX_RETRIES,
+  },
+  storage: {
+    provider: envVars.STORAGE_PROVIDER,
+    r2: {
+      accountId: envVars.CLOUDFLARE_ACCOUNT_ID,
+      accessKeyId: envVars.CLOUDFLARE_R2_ACCESS_KEY,
+      secretAccessKey: envVars.CLOUDFLARE_R2_SECRET_KEY,
+      bucket: envVars.CLOUDFLARE_R2_BUCKET,
+      publicUrl: envVars.CLOUDFLARE_R2_PUBLIC_URL,
+    },
   },
   queues: {
     inspection: {
