@@ -434,6 +434,14 @@ const worker = new Worker(
   }
 );
 
+worker.on('ready', () => {
+  logger.info({ queueName: QUEUE_NAME }, 'Worker is ready and listening for jobs');
+});
+
+worker.on('active', (job) => {
+  logger.info({ jobId: job.data.jobId, bullmqId: job.id }, 'Worker picked up job');
+});
+
 worker.on('completed', (job, result) => {
   logger.info({ jobId: job.data.jobId, result }, 'Worker completed job');
 });
@@ -446,7 +454,26 @@ worker.on('error', (err) => {
   logger.error({ err: err.message }, 'Worker error');
 });
 
-logger.info({ redisHost: redisConfig.hostname, queueName: QUEUE_NAME }, 'BullMQ inspection worker started');
+worker.on('stalled', (jobId) => {
+  logger.warn({ jobId }, 'Worker job stalled');
+});
+
+logger.info({ 
+  redisHost: redisConfig.hostname, 
+  redisPort: redisConfig.port,
+  queueName: QUEUE_NAME,
+  hasPassword: !!redisConfig.password,
+}, 'BullMQ inspection worker starting...');
+
+// Log connection status after a short delay
+setTimeout(async () => {
+  try {
+    const isRunning = await worker.isRunning();
+    logger.info({ isRunning, queueName: QUEUE_NAME }, 'Worker status check');
+  } catch (e) {
+    logger.error({ err: e.message }, 'Failed to check worker status');
+  }
+}, 5000);
 
 process.on('SIGINT', async () => {
   logger.info('Worker received SIGINT, closing...');
