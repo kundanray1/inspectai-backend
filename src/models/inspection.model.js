@@ -3,8 +3,10 @@ const mongoose = require('mongoose');
 const photoIssueSchema = new mongoose.Schema(
   {
     label: { type: String, required: true },
-    severity: { type: String, enum: ['low', 'medium', 'high'], required: true },
-    confidence: { type: Number, min: 0, max: 1, required: true },
+    severity: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+    category: { type: String, enum: ['structural', 'electrical', 'plumbing', 'cosmetic', 'safety', 'appliance', 'other'] },
+    recommendation: { type: String },
+    confidence: { type: Number, min: 0, max: 1 },
   },
   { _id: false }
 );
@@ -33,7 +35,7 @@ const roomSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     displayOrder: { type: Number, default: 0 },
-    conditionRating: { type: String, enum: ['excellent', 'good', 'fair', 'needs_maintenance'] },
+    conditionRating: { type: String, enum: ['excellent', 'good', 'fair', 'poor', 'critical', 'needs_maintenance', 'unrated'], default: 'unrated' },
     notes: { type: String },
     actions: { type: [String], default: [] },
     aiSummary: { type: String },
