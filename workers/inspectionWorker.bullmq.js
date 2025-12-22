@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Redis = require('ioredis');
 const logger = require('../src/config/logger');
 const config = require('../src/config/config');
+const { QUEUE_NAMES, getRedisConnection } = require('../src/queues/queue.config');
 const { jobService, reportPresetService } = require('../src/services');
 const { Inspection } = require('../src/models/inspection.model');
 const geminiService = require('../src/services/ai/gemini.service');
@@ -12,7 +13,7 @@ const R2Storage = require('../src/lib/storage/r2.storage');
 // Initialize R2 storage
 const storage = new R2Storage();
 
-// Redis for pub/sub socket events
+// Redis for pub/sub socket events - use same connection as queue
 const redisUrl = config.redis?.url || process.env.REDIS_URL || 'redis://localhost:6379';
 const pubClient = new Redis(redisUrl);
 
@@ -414,22 +415,17 @@ mongoose
     process.exit(1);
   });
 
-// Create BullMQ worker - MUST match queue name from inspection.bullmq.js
-const QUEUE_NAME = 'inspection-process'; // Must match QUEUE_NAMES.INSPECTION_PROCESS
+// Create BullMQ worker - use same queue name and connection as API
+const QUEUE_NAME = QUEUE_NAMES.INSPECTION_PROCESS;
 
-const redisConfig = new URL(redisUrl);
+// Use the shared Redis connection from queue config
+const redisConnection = getRedisConnection();
 
 const worker = new Worker(
   QUEUE_NAME,
   processInspectionJob,
   {
-    connection: {
-      host: redisConfig.hostname,
-      port: parseInt(redisConfig.port, 10) || 6379,
-      password: redisConfig.password || undefined,
-      maxRetriesPerRequest: null, // Required by BullMQ
-      enableReadyCheck: false,
-    },
+    connection: redisConnection,
     concurrency: 2,
   }
 );
@@ -459,10 +455,8 @@ worker.on('stalled', (jobId) => {
 });
 
 logger.info({ 
-  redisHost: redisConfig.hostname, 
-  redisPort: redisConfig.port,
   queueName: QUEUE_NAME,
-  hasPassword: !!redisConfig.password,
+  redisUrl: redisUrl.replace(/:[^:@]+@/, ':***@'), // Hide password in logs
 }, 'BullMQ inspection worker starting...');
 
 // Log connection status after a short delay
