@@ -54,8 +54,8 @@ const corsOptions = {
     // Allow exact match
     if (origin === config.frontendUrl) return callback(null, true);
     
-    // Allow Cloudflare Pages preview deployments (*.inspectai-8p7.pages.dev)
-    if (/^https:\/\/[a-z0-9-]+\.inspectai-8p7\.pages\.dev$/.test(origin)) {
+    // Allow all Cloudflare Pages domains (inspectai-8p7.pages.dev and *.inspectai-8p7.pages.dev)
+    if (/^https:\/\/([\w-]+\.)?inspectai(-8p7)?\.pages\.dev$/.test(origin)) {
       return callback(null, true);
     }
     
@@ -64,7 +64,8 @@ const corsOptions = {
       return callback(null, true);
     }
     
-    callback(new Error('CORS not allowed'), false);
+    // Don't block - just don't set the header (browser will enforce)
+    callback(null, false);
   },
   credentials: true,
 };
