@@ -8,6 +8,11 @@ const logger = require('../config/logger');
 const { jobService, reportPresetService } = require('../services');
 const inspectionQueue = require('../queues/inspection.bullmq');
 
+/**
+ * Upload photos to an inspection.
+ * - If roomId is provided: attach photos to that specific room (legacy behavior)
+ * - If roomId is NOT provided: AI will classify photos into rooms automatically
+ */
 const uploadPhotos = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { roomId } = req.body;
@@ -21,10 +26,6 @@ const uploadPhotos = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'A maximum of 50 photos can be uploaded at once');
   }
 
-  if (!roomId) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'roomId is required to attach photos');
-  }
-
   if (!req.user) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required');
   }
@@ -34,22 +35,7 @@ const uploadPhotos = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Inspection not found');
   }
 
-  const room = inspection.rooms.id(roomId);
-  if (!room) {
-    throw new ApiError(httpStatus.NOT_FOUND, 'Room not found');
-  }
-
-  const newPhotos = files.map((file) => {
-    const photo = room.photos.create({
-      storagePath: path.join(config.uploads.dir, file.filename),
-      originalFilename: file.originalname,
-      fileSize: file.size,
-      mimeType: file.mimetype,
-    });
-    room.photos.push(photo);
-    return photo;
-  });
-
+  // Ensure report preset is set
   let preset = null;
   if (inspection.reportPresetId) {
     preset = await reportPresetService
@@ -128,20 +114,75 @@ const uploadPhotos = catchAsync(async (req, res) => {
     inspection.reportPresetId = preset._id;
   }
 
+  let newPhotos = [];
+  let targetRoomId = roomId;
+  let isAIClassificationMode = false;
+
+  if (roomId) {
+    // Legacy mode: attach to specific room
+    const room = inspection.rooms.id(roomId);
+    if (!room) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Room not found');
+    }
+
+    newPhotos = files.map((file) => {
+      const photo = room.photos.create({
+        storagePath: path.join(config.uploads.dir, file.filename),
+        originalFilename: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+      });
+      room.photos.push(photo);
+      return { photo, roomId: room._id };
+    });
+  } else {
+    // AI Classification mode: create a temporary "Unclassified" room
+    // Photos will be moved to proper rooms after AI classification
+    isAIClassificationMode = true;
+    
+    // Create or find the "Pending Classification" room
+    let pendingRoom = inspection.rooms.find((r) => r.name === '_pending_classification');
+    if (!pendingRoom) {
+      inspection.rooms.push({
+        name: '_pending_classification',
+        displayOrder: 999,
+        conditionRating: 'unrated',
+        photos: [],
+      });
+      pendingRoom = inspection.rooms[inspection.rooms.length - 1];
+    }
+
+    newPhotos = files.map((file) => {
+      const photo = pendingRoom.photos.create({
+        storagePath: path.join(config.uploads.dir, file.filename),
+        originalFilename: file.originalname,
+        fileSize: file.size,
+        mimeType: file.mimetype,
+        pendingClassification: true, // Mark as needing AI classification
+      });
+      pendingRoom.photos.push(photo);
+      return { photo, roomId: pendingRoom._id };
+    });
+    
+    targetRoomId = pendingRoom._id;
+  }
+
   inspection.markModified('rooms');
   await inspection.save();
 
-  logger.info(`Uploaded ${files.length} photos to inspection ${id}`);
+  logger.info(`Uploaded ${files.length} photos to inspection ${id} (AI classification: ${isAIClassificationMode})`);
 
+  // Create the analysis job
   const job = await jobService.createJob({
     inspectionId: inspection._id,
     organizationId: req.user.organizationId,
-    type: 'inspection.analysis',
-    roomId,
+    type: isAIClassificationMode ? 'inspection.classify_and_analyze' : 'inspection.analysis',
+    roomId: targetRoomId,
     payload: {
-      photoIds: newPhotos.map((photo) => photo._id),
+      photoIds: newPhotos.map((p) => p.photo._id),
       inspectionId: inspection._id,
-      roomId,
+      roomId: targetRoomId,
+      aiClassificationMode: isAIClassificationMode,
     },
     totalUnits: files.length,
     createdBy: req.user.id,
@@ -159,9 +200,10 @@ const uploadPhotos = catchAsync(async (req, res) => {
       inspectionId: inspection._id.toString(),
       organizationId: req.user.organizationId.toString(),
       payload: {
-        roomId,
-        photoIds: newPhotos.map((photo) => photo._id.toString()),
+        roomId: targetRoomId?.toString(),
+        photoIds: newPhotos.map((p) => p.photo._id.toString()),
         reportPresetId: inspection.reportPresetId?.toString(),
+        aiClassificationMode: isAIClassificationMode,
       },
     });
     queuedJob = await jobService.getJobById(job._id);
@@ -171,14 +213,13 @@ const uploadPhotos = catchAsync(async (req, res) => {
   }
 
   res.status(httpStatus.CREATED).send({
-    data: {
-      photos: room.photos,
-      job: {
-        id: job._id,
-        status: queuedJob.status,
-        progress: queuedJob.progress,
-        queueDepth: queueResult.queueDepth,
-      },
+    data: newPhotos.map((p) => p.photo),
+    job: {
+      id: job._id,
+      status: queuedJob.status,
+      progress: queuedJob.progress,
+      queueDepth: queueResult.queueDepth,
+      aiClassificationMode: isAIClassificationMode,
     },
   });
 });
