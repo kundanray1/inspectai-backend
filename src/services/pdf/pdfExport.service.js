@@ -342,9 +342,16 @@ const addField = async (doc, field, margin) => {
     default:
       // Standard text field
       doc.fillColor(COLORS.muted);
-      doc.text(`${field.label}: `, margin, doc.y, { continued: true });
-      doc.fillColor(COLORS.black);
-      doc.text(String(field.value || '—'));
+      // Handle empty labels (for paragraph content)
+      if (field.label && field.label.length > 0) {
+        doc.text(`${field.label}: `, margin, doc.y, { continued: true });
+        doc.fillColor(COLORS.black);
+        doc.text(String(field.value || '—'));
+      } else {
+        // Just the value as a paragraph
+        doc.fillColor(COLORS.black);
+        doc.text(String(field.value || ''), margin);
+      }
   }
   
   doc.moveDown(0.3);

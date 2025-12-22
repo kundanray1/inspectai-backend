@@ -213,22 +213,28 @@ const generateReportPDF = catchAsync(async (req, res) => {
   // Generate PDF
   logger.info({ reportId, version: targetVersion, isTrialUser }, 'Generating PDF report');
 
-  const pdfBuffer = await pdfExportService.generateInspectionReportPDF({
-    inspection: {
-      ...inspection.toObject(),
-      property: inspection.propertyId,
-      inspector: user,
-    },
-    reportData: {
-      title: reportVersion.title,
-      summary: reportVersion.summary,
-      introduction: reportVersion.introduction,
-      conclusion: reportVersion.conclusion,
-    },
-    preset: null, // TODO: Add preset support
-    organization,
-    isTrialUser,
-  });
+  let pdfBuffer;
+  try {
+    pdfBuffer = await pdfExportService.generateInspectionReportPDF({
+      inspection: {
+        ...inspection.toObject(),
+        property: inspection.propertyId,
+        inspector: user,
+      },
+      reportData: {
+        title: reportVersion.title,
+        summary: reportVersion.summary,
+        introduction: reportVersion.introduction,
+        conclusion: reportVersion.conclusion,
+      },
+      preset: null, // TODO: Add preset support
+      organization,
+      isTrialUser,
+    });
+  } catch (pdfError) {
+    logger.error({ err: pdfError, reportId }, 'PDF generation failed');
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, `PDF generation failed: ${pdfError.message}`);
+  }
 
   // Upload to storage
   const pdfPath = storagePaths.generatedReport(
