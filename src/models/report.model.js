@@ -7,7 +7,7 @@ const reportVersionSchema = new mongoose.Schema(
     summary: { type: String, required: true },
     introduction: { type: String },
     conclusion: { type: String },
-    generatedAt: { type: Date, default: Date.now },
+    generatedAt: { type: Date },
     generatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     pdfUrl: { type: String },
     watermark: { type: Boolean, default: true },
