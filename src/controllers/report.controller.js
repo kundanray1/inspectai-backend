@@ -318,7 +318,7 @@ const generateAndUploadReportPDF = async ({
   }
 
   if (isTrialUser && !user.trialStatus?.freeReportUsed) {
-    await usageMeteringService.markFreeReportUsed(user.id, report._id);
+    await usageMeteringService.markTrialUsed(user.id, report._id);
   }
 
   logger.info({ reportId: report._id, pdfPath, version: targetVersion }, 'PDF report generated and uploaded');
