@@ -4,6 +4,7 @@ const ApiError = require('../utils/ApiError');
 const { pdfExportService, usageMeteringService } = require('../services');
 const { Inspection, Subscription, Report, ReportPreset } = require('../models');
 const { getStorage, storagePaths } = require('../lib/storage');
+const config = require('../config/config');
 const logger = require('../config/logger');
 
 /**
@@ -158,6 +159,13 @@ const createReport = catchAsync(async (req, res) => {
     data: report,
     message: 'Report created. Use /generate-pdf to generate the PDF.',
   });
+
+  logger.info({
+    reportId: report._id,
+    inspectionId,
+    organizationId: user.organizationId,
+    currentVersion: report.currentVersion,
+  }, 'Report record created or updated');
 });
 
 // Report PDFs are available for 7 days after generation
@@ -236,7 +244,25 @@ const downloadReportPDF = catchAsync(async (req, res) => {
   );
 
   const storage = getStorage();
-  const fileExists = await storage.exists(pdfPath).catch(() => false);
+  logger.info({
+    reportId,
+    requestedVersion,
+    pdfPath,
+    storageProvider: config.storage.provider,
+  }, 'Checking report PDF in storage');
+
+  let fileExists = false;
+  try {
+    fileExists = await storage.exists(pdfPath);
+  } catch (err) {
+    logger.error({
+      reportId,
+      pdfPath,
+      err: err.message,
+      name: err.name,
+      code: err.code,
+    }, 'Storage exists check failed');
+  }
 
   if (fileExists) {
     // Generate presigned URL valid for remaining time or 1 hour (whichever is shorter)
@@ -268,6 +294,11 @@ const downloadReportPDF = catchAsync(async (req, res) => {
   }
 
   // PDF doesn't exist in storage (may have been cleaned up)
+  logger.warn({
+    reportId,
+    requestedVersion,
+    pdfPath,
+  }, 'Report PDF missing in storage');
   throw new ApiError(
     httpStatus.GONE, 
     'Report PDF has expired or been removed. Please regenerate the report using /generate-pdf.'
@@ -377,10 +408,16 @@ const generateReportPDF = catchAsync(async (req, res) => {
       targetVersion
     );
 
-    logger.info({ pdfPath }, 'Uploading PDF to storage');
+    logger.info({
+      pdfPath,
+      reportId,
+      targetVersion,
+      storageProvider: config.storage.provider,
+      bucket: config.storage.r2?.bucket,
+    }, 'Uploading PDF to storage');
 
     const storage = getStorage();
-    await storage.upload(pdfPath, pdfBuffer, {
+    const uploadResult = await storage.upload(pdfPath, pdfBuffer, {
       contentType: 'application/pdf',
       metadata: {
         reportId: reportId,
@@ -389,7 +426,11 @@ const generateReportPDF = catchAsync(async (req, res) => {
       },
     });
 
-    logger.info({ pdfPath }, 'PDF uploaded successfully');
+    logger.info({
+      pdfPath,
+      etag: uploadResult?.etag,
+      size: uploadResult?.size,
+    }, 'PDF uploaded successfully');
 
     // Get download URL
     downloadUrl = await storage.getPresignedDownloadUrl(pdfPath, {
