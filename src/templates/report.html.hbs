@@ -15,7 +15,7 @@
         --text-muted: #4b5563;
       }
       @page {
-        margin: 90px 40px 70px;
+        margin: 0;
       }
       * {
         box-sizing: border-box;
@@ -32,7 +32,7 @@
         top: 0;
         left: 0;
         right: 0;
-        padding: 18px 40px 12px;
+        padding: 12px 40px 8px;
         border-bottom: var(--header-line-thickness) solid var(--header-line-color);
         background: #fff;
       }
@@ -75,7 +75,7 @@
         font-weight: 600;
       }
       .content {
-        padding-top: 20px;
+        padding-top: 12px;
       }
       .section {
         margin-bottom: 22px;
@@ -94,12 +94,23 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 11px;
+        page-break-inside: auto;
+      }
+      thead {
+        display: table-header-group;
+      }
+      tfoot {
+        display: table-footer-group;
       }
       th,
       td {
         border: 1px solid var(--table-border);
         padding: 6px 8px;
         vertical-align: top;
+      }
+      tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
       th {
         background: var(--table-header-bg);

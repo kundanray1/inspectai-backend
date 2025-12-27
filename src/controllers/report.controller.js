@@ -41,6 +41,9 @@ const listReports = catchAsync(async (req, res) => {
   const enrichedReports = reports.map(report => {
     const latestVersion = report.versions.find(v => v.version === report.currentVersion);
     let expiryInfo = null;
+    const inspectionId = typeof report.inspectionId === 'object' && report.inspectionId
+      ? report.inspectionId._id?.toString?.() || String(report.inspectionId._id || report.inspectionId)
+      : report.inspectionId?.toString?.();
 
     if (latestVersion?.generatedAt) {
       const expiry = calculateExpiry(latestVersion.generatedAt);
@@ -54,10 +57,11 @@ const listReports = catchAsync(async (req, res) => {
 
     return {
       ...report.toObject(),
+      inspectionId,
       expiryInfo,
       property: report.inspectionId?.propertyId || null,
       inspection: report.inspectionId ? {
-        _id: report.inspectionId._id,
+        _id: inspectionId || report.inspectionId._id,
         status: report.inspectionId.status,
         roomsCount: report.inspectionId.rooms?.length || 0,
       } : null,

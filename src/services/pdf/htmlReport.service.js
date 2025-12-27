@@ -17,6 +17,13 @@ const loadTemplate = () => {
   return compiledTemplate;
 };
 
+const BASE_CSS = `
+  table { page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  tr { page-break-inside: avoid; break-inside: avoid; }
+`;
+
 const normalizeValue = (value) => {
   if (value === null || typeof value === 'undefined') return '';
   if (Array.isArray(value)) return value.map((item) => normalizeValue(item)).join(', ');
@@ -138,7 +145,7 @@ const buildStyling = (schema) => {
 const buildTemplateDocument = ({ templateHtml, templateCss }) => {
   if (!templateHtml) return null;
 
-  const cssBlock = `<style>${templateCss || ''}</style>`;
+  const cssBlock = `<style>${BASE_CSS}\n${templateCss || ''}</style>`;
 
   if (templateHtml.includes('<html')) {
     if (templateHtml.includes('{{{css}}}')) {
@@ -200,6 +207,12 @@ const renderReportToPdf = async ({
   const compiled = templateDoc ? handlebars.compile(templateDoc) : loadTemplate();
   const html = compiled(data);
 
+  const customTemplate = Boolean(templateHtml);
+  const hasPageRule = /@page\b/i.test(templateCss || '') || /@page\b/i.test(templateHtml || '');
+  const margin = customTemplate
+    ? (hasPageRule ? { top: '0', bottom: '0', left: '0', right: '0' } : { top: '20px', bottom: '20px', left: '20px', right: '20px' })
+    : { top: '90px', bottom: '60px', left: '40px', right: '40px' };
+
   const browser = await puppeteer.launch({
     headless: 'new',
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
@@ -212,7 +225,7 @@ const renderReportToPdf = async ({
     return await page.pdf({
       format: 'A4',
       printBackground: true,
-      margin: { top: '110px', bottom: '70px', left: '40px', right: '40px' },
+      margin,
     });
   } finally {
     await browser.close();
