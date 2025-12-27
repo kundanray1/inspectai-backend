@@ -52,6 +52,7 @@ router.get('/inspection/:inspectionId', auth(), reportController.getReportByInsp
 router.post(
   '/inspection/:inspectionId',
   auth(),
+  requireSubscriptionOrTrial,
   validate(reportValidation.generateReport),
   reportController.createReport
 );

@@ -5,6 +5,7 @@ const inspectionController = require('../../controllers/inspection.controller');
 const photoController = require('../../controllers/photo.controller');
 const inspectionValidation = require('../../validations/inspection.validation');
 const { upload } = require('../../middlewares/upload');
+const { requireSubscriptionOrTrial } = require('../../middlewares/subscriptionGate');
 
 const router = express.Router();
 
@@ -27,6 +28,7 @@ router.patch('/:id/rooms/:roomId', auth(), validate(inspectionValidation.updateR
 router.post(
   '/:id/rooms/:roomId/analyse',
   auth(),
+  requireSubscriptionOrTrial,
   validate(inspectionValidation.analyseRoom),
   inspectionController.analyseRoom
 );
@@ -35,6 +37,7 @@ router.post(
 router.post(
   '/:id/photos',
   auth(),
+  requireSubscriptionOrTrial,
   upload.array('photos'),
   validate(inspectionValidation.uploadPhotos),
   photoController.uploadPhotos
@@ -44,6 +47,7 @@ router.post(
 router.post(
   '/:id/photos/upload-urls',
   auth(),
+  requireSubscriptionOrTrial,
   validate(inspectionValidation.getUploadUrls),
   photoController.getUploadUrls
 );
@@ -52,6 +56,7 @@ router.post(
 router.post(
   '/:id/photos/register',
   auth(),
+  requireSubscriptionOrTrial,
   validate(inspectionValidation.registerPhotos),
   photoController.registerPhotos
 );

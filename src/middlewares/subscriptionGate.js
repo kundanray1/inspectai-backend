@@ -37,6 +37,13 @@ const FEATURE_ACCESS = {
  * Plan limits by tier
  */
 const PLAN_LIMITS = {
+  trial: {
+    reportsPerMonth: 1,
+    photosPerInspection: 20,
+    templates: 1,
+    pdfWatermark: true,
+    apiAccess: false,
+  },
   free: {
     reportsPerMonth: 1,
     photosPerInspection: 20,
@@ -367,4 +374,3 @@ module.exports = {
   FEATURE_ACCESS,
   PLAN_LIMITS,
 };
-

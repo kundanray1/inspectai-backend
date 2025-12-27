@@ -28,6 +28,10 @@ const getSubscription = catchAsync(async (req, res) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Subscription not found');
   }
 
+  if (subscription.plan === 'trial' && subscription.reportLimit !== 1) {
+    subscription.reportLimit = 1;
+  }
+
   res.send({ data: subscription });
 });
 

@@ -381,16 +381,21 @@ const generateAndUploadReportPDF = async ({
   const generatedAt = new Date();
 
   const versionIndex = report.versions.findIndex(v => v.version === targetVersion);
-  if (versionIndex !== -1) {
-    report.versions[versionIndex].pdfUrl = downloadUrl;
-    report.versions[versionIndex].watermark = isTrialUser;
-    report.versions[versionIndex].generatedAt = generatedAt;
-    await report.save();
+  if (versionIndex === -1) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Report version not found');
   }
 
-  if (isTrialUser && !user.trialStatus?.freeReportUsed) {
-    await usageMeteringService.markTrialUsed(user.id, report._id);
-  }
+  report.versions[versionIndex].pdfUrl = downloadUrl;
+  report.versions[versionIndex].watermark = isTrialUser;
+  report.versions[versionIndex].generatedAt = generatedAt;
+  await report.save();
+
+  await usageMeteringService.recordReportGeneration(
+    user.id,
+    user.organizationId,
+    report._id,
+    isTrialUser
+  );
 
   logger.info({ reportId: report._id, pdfPath, version: targetVersion }, 'PDF report generated and uploaded');
 

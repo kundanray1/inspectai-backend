@@ -112,7 +112,7 @@ const createInspectUserAccount = async ({ email, name, password }) => {
 
   const trialPlan = (await planService.getPlanBySlug('trial')) || {
     slug: 'trial',
-    reportLimit: 10,
+    reportLimit: 1,
     trialDays: 7,
   };
 
@@ -134,7 +134,7 @@ const createInspectUserAccount = async ({ email, name, password }) => {
       status: 'trialing',
       trialEndsAt: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
       seats: 1,
-      reportLimit: trialPlan.reportLimit || 10,
+      reportLimit: trialPlan.reportLimit || 1,
       usage: [],
     },
   });

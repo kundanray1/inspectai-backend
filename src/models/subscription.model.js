@@ -23,7 +23,7 @@ const subscriptionSchema = new mongoose.Schema(
     },
     trialEndsAt: { type: Date },
     seats: { type: Number, default: 1 },
-    reportLimit: { type: Number, default: 10 },
+    reportLimit: { type: Number, default: 1 },
     usage: { type: [usageMetricSchema], default: [] },
     cancelAtPeriodEnd: { type: Boolean, default: false },
   },

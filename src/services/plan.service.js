@@ -60,8 +60,8 @@ const ensureDefaultPlans = async () => {
       description: 'Evaluate InspectAI with a complimentary starter plan.',
       priceMonthly: 0,
       currency: 'usd',
-      reportLimit: 10,
-      features: ['10 inspections included', 'AI summaries with watermark', 'Standard PDF exports'],
+      reportLimit: 1,
+      features: ['1 inspection included', 'AI summaries with watermark', 'Standard PDF exports'],
       stripePriceId: null,
       trialDays: 7,
       isPublic: true,
@@ -100,7 +100,12 @@ const ensureDefaultPlans = async () => {
       const existing = await Plan.findOne({ slug: plan.slug });
       if (!existing) {
         await Plan.create(plan);
-      } else if (!existing.active || existing.name !== plan.name) {
+      } else if (
+        !existing.active ||
+        existing.name !== plan.name ||
+        existing.reportLimit !== plan.reportLimit ||
+        existing.trialDays !== plan.trialDays
+      ) {
         await Plan.updateOne({ _id: existing._id }, { $set: plan });
       }
     })
