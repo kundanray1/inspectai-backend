@@ -78,7 +78,7 @@ Ensure column widths sum to 1.0 for tables. Use semantic HTML elements (header, 
 
 const extractCssFromHtml = (html) => {
   if (!html) return { html, css: '' };
-  const styleMatch = html.match(/<style[^>]*>([\\s\\S]*?)<\\/style>/i);
+  const styleMatch = html.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
   if (!styleMatch) return { html, css: '' };
   const css = styleMatch[1].trim();
   const cleanedHtml = html.replace(styleMatch[0], '').trim();
