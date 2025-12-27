@@ -8,7 +8,7 @@ if (config.env !== 'test') {
   transport
     .verify()
     .then(() => logger.info('Connected to email server'))
-    .catch(() => logger.warn('Unable to connect to email server. Make sure you have configured the SMTP options in .env'));
+    .catch((e) => logger.warn(e,config.email.smtp,'Unable to connect to email server. Make sure you have configured the SMTP options in .env'));
 }
 
 /**
