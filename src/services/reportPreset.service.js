@@ -6,7 +6,7 @@ const config = require('../config/config');
 const ApiError = require('../utils/ApiError');
 const ReportPreset = require('../models/reportPreset.model');
 const logger = require('../config/logger');
-const { extractSchemaFromPdf, getDefaultSections } = require('./ai/schemaExtraction.service');
+const { extractTemplateWithFallback } = require('./ai/templateExtraction.service');
 
 const STORAGE_DIR = path.resolve(config.uploads.dir, 'presets');
 
@@ -38,18 +38,20 @@ const buildFallbackSchema = (name = 'Inspection') => {
 
 const generateSchemaWithFallback = async ({ sampleReportPath, presetName }) => {
   try {
-    // Use Gemini Vision to extract schema from PDF
-    const result = await extractSchemaFromPdf({ filePath: sampleReportPath });
+    const result = await extractTemplateWithFallback({ filePath: sampleReportPath });
     logger.info(
       { 
         confidence: result.confidence, 
         warnings: result.warnings,
-        suggestions: result.suggestions 
+        suggestions: result.suggestions,
+        hasTemplate: Boolean(result.templateHtml),
       },
-      'Schema extracted from PDF using Gemini Vision'
+      'Template extracted from PDF using Gemini Vision'
     );
     return {
       schema: result.schema,
+      templateHtml: result.templateHtml,
+      templateCss: result.templateCss,
       generatedFromSample: true,
       usedFallback: false,
       confidence: result.confidence,
@@ -60,6 +62,8 @@ const generateSchemaWithFallback = async ({ sampleReportPath, presetName }) => {
     logger.warn({ err: error }, 'Falling back to default schema template for report preset');
     return {
       schema: buildFallbackSchema(presetName),
+      templateHtml: null,
+      templateCss: null,
       generatedFromSample: false,
       usedFallback: true,
       confidence: 0,
@@ -96,6 +100,8 @@ const createPreset = async ({ organizationId, userId, name, description, schema,
   }
 
   let effectiveSchema = schema;
+  let templateHtml = null;
+  let templateCss = null;
   let generatedFromSample = false;
   let fallbackApplied = false;
 
@@ -105,6 +111,8 @@ const createPreset = async ({ organizationId, userId, name, description, schema,
     }
     const schemaResult = await generateSchemaWithFallback({ sampleReportPath, presetName: name });
     effectiveSchema = schemaResult.schema;
+    templateHtml = schemaResult.templateHtml || null;
+    templateCss = schemaResult.templateCss || null;
     generatedFromSample = schemaResult.generatedFromSample;
     fallbackApplied = schemaResult.usedFallback;
     logger.info(
@@ -140,6 +148,8 @@ const createPreset = async ({ organizationId, userId, name, description, schema,
     name,
     description,
     schema: sanitizedSchema,
+    templateHtml,
+    templateCss,
     sampleReportPath,
     tags: normalizedTags,
     isDefault: shouldBeDefault,
@@ -159,6 +169,7 @@ const createPreset = async ({ organizationId, userId, name, description, schema,
     ...preset.toObject(),
     schemaGenerated: generatedFromSample,
     schemaFallbackApplied: fallbackApplied,
+    templateGenerated: Boolean(templateHtml),
   };
 };
 

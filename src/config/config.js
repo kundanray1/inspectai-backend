@@ -88,6 +88,7 @@ const envVarsSchema = Joi.object()
       .min(1)
       .default(2)
       .description('Number of inspection worker instances'),
+    PUPPETEER_EXECUTABLE_PATH: Joi.string().description('Puppeteer executable path (optional)'),
   })
   .unknown();
 
@@ -189,5 +190,8 @@ module.exports = {
       prefetch: envVars.INSPECTION_WORKER_PREFETCH,
       concurrency: envVars.INSPECTION_WORKER_CONCURRENCY,
     },
+  },
+  pdf: {
+    puppeteerExecutablePath: envVars.PUPPETEER_EXECUTABLE_PATH,
   },
 };

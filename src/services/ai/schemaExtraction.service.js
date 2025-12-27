@@ -34,6 +34,13 @@ Return ONLY valid JSON with the following structure:
       "description": "What this section contains",
       "order": 1,
       "repeatable": false,
+      "layout": {
+        "type": "table|list",
+        "columns": [
+          { "key": "field_key_snake_case", "label": "Column Header", "width": 0.25 }
+        ],
+        "headerStyle": { "background": "#eaeaea", "fontWeight": "bold" }
+      },
       "fields": [
         {
           "key": "field_key_snake_case",
@@ -49,7 +56,8 @@ Return ONLY valid JSON with the following structure:
   "styling": {
     "headerStyle": "centered|left|right",
     "primaryColor": "#hex_color_from_document",
-    "fontFamily": "detected_font_name"
+    "fontFamily": "detected_font_name",
+    "headerLine": { "color": "#hex_color_from_document", "thickness": 2 }
   },
   "metadata": {
     "documentType": "property_inspection|building_inspection|pre_purchase|rental",
@@ -71,6 +79,8 @@ Guidelines:
   - "issue_list" for detected issues
   - "condition_rating" for condition assessments
   - "signature" for signature fields
+- If a section is displayed as a table, include layout.type = "table" and define columns in the exact order shown in the document.
+- Provide column widths as decimals that sum to 1.0 (e.g., 0.25, 0.25, 0.3, 0.2).
 - Extract any visible styling (colors, fonts) from the document
 - Set confidence based on how clear the structure is
 - Add warnings for any ambiguous elements
@@ -395,4 +405,3 @@ module.exports = {
   generateSchemaFromDescription,
   pdfToImages,
 };
-

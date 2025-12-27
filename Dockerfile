@@ -1,10 +1,23 @@
 FROM node:20-alpine
 
+# Install Chromium + fonts for Puppeteer PDF rendering
+RUN apk add --no-cache \
+  chromium \
+  nss \
+  freetype \
+  harfbuzz \
+  ca-certificates \
+  ttf-freefont
+
 RUN mkdir -p /usr/src/node-app && chown -R node:node /usr/src/node-app
 
 WORKDIR /usr/src/node-app
 
 COPY package.json yarn.lock ./
+
+# Use system Chromium instead of downloading during install
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 USER node
 

@@ -1,11 +1,12 @@
 const httpStatus = require('http-status');
 const catchAsync = require('../utils/catchAsync');
 const ApiError = require('../utils/ApiError');
-const { pdfExportService, usageMeteringService } = require('../services');
+const { pdfExportService, usageMeteringService, reportPresetService } = require('../services');
 const { Inspection, Subscription, Report, ReportPreset } = require('../models');
 const { getStorage, storagePaths } = require('../lib/storage');
 const config = require('../config/config');
 const logger = require('../config/logger');
+const { reportGenerationService } = require('../services/ai');
 
 /**
  * List all reports for the organization
@@ -213,6 +214,56 @@ const calculateExpiry = (generatedAt) => {
   return { expired, expiresAt, daysRemaining, hoursRemaining };
 };
 
+const getPresetForInspection = async (inspection, organizationId) => {
+  if (!inspection) return null;
+
+  if (inspection.reportPresetId) {
+    const preset = await reportPresetService
+      .getPresetById({ presetId: inspection.reportPresetId, organizationId })
+      .catch(() => null);
+    if (preset) return preset;
+  }
+
+  return reportPresetService.getDefaultPreset({ organizationId }).catch(() => null);
+};
+
+const buildReportContent = async ({ preset, inspection, reportVersion, organization }) => {
+  if (!preset?.schema) return null;
+
+  const property = inspection.propertyId || {};
+  const propertyData = {
+    name: property.name,
+    address: property.address,
+    inspectionDate: inspection.createdAt,
+    inspectionStatus: inspection.status,
+  };
+
+  const rooms = (inspection.rooms || []).map((room) => {
+    const issues = (room.photos || []).flatMap((photo) => photo.issues || []);
+    return {
+      name: room.name,
+      conditionRating: room.conditionRating,
+      notes: room.notes,
+      aiSummary: room.aiSummary,
+      issues,
+      photoCount: room.photos?.length || 0,
+    };
+  });
+
+  try {
+    return await reportGenerationService.generateReport({
+      schema: preset.schema,
+      propertyData,
+      rooms,
+      agentNotes: reportVersion?.summary || reportVersion?.introduction || '',
+      organizationName: organization?.name || 'InspectAI',
+    });
+  } catch (error) {
+    logger.error({ err: error }, 'Failed to generate report content from schema');
+    return null;
+  }
+};
+
 /**
  * Generate and upload report PDF, then persist metadata on the report
  * @param {Object} options
@@ -231,6 +282,14 @@ const generateAndUploadReportPDF = async ({
     name: user.name ? `${user.name}'s Organization` : 'InspectAI',
   };
 
+  const preset = await getPresetForInspection(inspection, user.organizationId);
+  const reportContent = await buildReportContent({
+    preset,
+    inspection,
+    reportVersion,
+    organization,
+  });
+
   logger.info({ reportId: report._id, version: targetVersion, isTrialUser }, 'Generating PDF report');
 
   let pdfBuffer;
@@ -239,6 +298,7 @@ const generateAndUploadReportPDF = async ({
       ? inspection.toObject() 
       : inspection;
     
+    const createdAt = new Date();
     pdfBuffer = await pdfExportService.generateInspectionReportPDF({
       inspection: {
         ...inspectionData,
@@ -251,9 +311,16 @@ const generateAndUploadReportPDF = async ({
         introduction: reportVersion.introduction,
         conclusion: reportVersion.conclusion,
       },
-      preset: null, // TODO: Add preset support
+      preset,
       organization,
       isTrialUser,
+      reportContent,
+      reportMeta: {
+        version: targetVersion,
+        createdAt: createdAt.toLocaleString(),
+        templateId: preset?._id?.toString() || '',
+        templateVersion: preset?.versions?.length || '',
+      },
     });
   } catch (pdfError) {
     logger.error({ err: pdfError, reportId: report._id }, 'PDF generation failed');
@@ -570,7 +637,16 @@ const previewReportPDF = catchAsync(async (req, res) => {
     name: user.name ? `${user.name}'s Organization` : 'InspectAI',
   };
 
+  const preset = await getPresetForInspection(inspection, user.organizationId);
+  const reportContent = await buildReportContent({
+    preset,
+    inspection,
+    reportVersion,
+    organization,
+  });
+
   // Generate PDF (not saved, just for preview)
+  const createdAt = new Date();
   const pdfBuffer = await pdfExportService.generateInspectionReportPDF({
     inspection: {
       ...inspection.toObject(),
@@ -583,9 +659,16 @@ const previewReportPDF = catchAsync(async (req, res) => {
       introduction: reportVersion.introduction,
       conclusion: reportVersion.conclusion,
     },
-    preset: null,
+    preset,
     organization,
     isTrialUser,
+    reportContent,
+    reportMeta: {
+      version: targetVersion,
+      createdAt: createdAt.toLocaleString(),
+      templateId: preset?._id?.toString() || '',
+      templateVersion: preset?.versions?.length || '',
+    },
   });
 
   // Stream PDF

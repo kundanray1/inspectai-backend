@@ -11,6 +11,7 @@ const { Readable } = require('stream');
 const logger = require('../../config/logger');
 const ApiError = require('../../utils/ApiError');
 const httpStatus = require('http-status');
+const htmlReportService = require('./htmlReport.service');
 
 /**
  * @typedef {Object} BrandingOptions
@@ -489,10 +490,24 @@ const generateInspectionReportPDF = async ({
   preset,
   organization,
   isTrialUser = false,
+  reportContent,
+  reportMeta,
 }) => {
   // Defensive null checks
   if (!inspection) {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Inspection data is required for PDF generation');
+  }
+
+  if (preset?.schema && reportContent) {
+    return htmlReportService.renderReportToPdf({
+      schema: preset.schema,
+      templateHtml: preset.templateHtml,
+      templateCss: preset.templateCss,
+      reportContent,
+      inspection,
+      organization,
+      reportMeta,
+    });
   }
 
   // Build branding from organization and preset
@@ -625,4 +640,3 @@ module.exports = {
   FONT_SIZES,
   hexToRgb,
 };
-

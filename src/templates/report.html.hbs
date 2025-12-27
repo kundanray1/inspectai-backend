@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{title}}</title>
+    <style>
+      :root {
+        --primary-color: {{styling.primaryColor}};
+        --header-line-color: {{styling.headerLineColor}};
+        --header-line-thickness: {{styling.headerLineThickness}}px;
+        --font-family: {{styling.fontFamily}};
+        --table-border: #d9d9d9;
+        --table-header-bg: #efefef;
+        --text-muted: #4b5563;
+      }
+      @page {
+        margin: 90px 40px 70px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: #111827;
+        font-family: var(--font-family);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .page-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 18px 40px 12px;
+        border-bottom: var(--header-line-thickness) solid var(--header-line-color);
+        background: #fff;
+      }
+      .header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo-placeholder {
+        width: 42px;
+        height: 42px;
+        border-radius: 6px;
+        background: var(--primary-color);
+        opacity: 0.15;
+      }
+      .header-title {
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .header-meta {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px 20px;
+        font-size: 11px;
+      }
+      .meta-label {
+        color: var(--text-muted);
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        font-size: 9px;
+      }
+      .meta-value {
+        font-weight: 600;
+      }
+      .content {
+        padding-top: 20px;
+      }
+      .section {
+        margin-bottom: 22px;
+        page-break-inside: avoid;
+      }
+      .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .section-description {
+        color: var(--text-muted);
+        margin: 0 0 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+      th,
+      td {
+        border: 1px solid var(--table-border);
+        padding: 6px 8px;
+        vertical-align: top;
+      }
+      th {
+        background: var(--table-header-bg);
+        font-weight: 700;
+        text-align: left;
+      }
+      .field-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 8px 16px;
+        align-items: start;
+      }
+      .field-label {
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+      .field-value {
+        white-space: pre-wrap;
+      }
+      .empty-row {
+        color: var(--text-muted);
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="page-header">
+      <div class="header-row">
+        <div class="header-left">
+          <div class="logo-placeholder"></div>
+          <div>
+            <div class="header-title">{{title}}</div>
+            <div>{{organizationName}}</div>
+          </div>
+        </div>
+        <div class="header-meta">
+          {{#each headerMeta}}
+            <div>
+              <div class="meta-label">{{label}}</div>
+              <div class="meta-value">{{value}}</div>
+            </div>
+          {{/each}}
+        </div>
+      </div>
+    </header>
+
+    <main class="content">
+      {{#each sections}}
+        <section class="section">
+          <div class="section-title">{{name}}</div>
+          {{#if description}}
+            <p class="section-description">{{description}}</p>
+          {{/if}}
+
+          {{#if isTable}}
+            <table>
+              <colgroup>
+                {{#each layout.columns}}
+                  <col style="width: {{width}}%;" />
+                {{/each}}
+              </colgroup>
+              <thead>
+                <tr>
+                  {{#each layout.columns}}
+                    <th>{{label}}</th>
+                  {{/each}}
+                </tr>
+              </thead>
+              <tbody>
+                {{#if rows.length}}
+                  {{#each rows}}
+                    <tr>
+                      {{#each ../layout.columns}}
+                        <td>{{lookup ../this key}}</td>
+                      {{/each}}
+                    </tr>
+                  {{/each}}
+                {{else}}
+                  <tr>
+                    <td class="empty-row" colspan="{{layout.columns.length}}">No entries available.</td>
+                  </tr>
+                {{/if}}
+              </tbody>
+            </table>
+          {{else}}
+            <div class="field-grid">
+              {{#each fields}}
+                <div class="field-label">{{label}}</div>
+                <div class="field-value">{{value}}</div>
+              {{/each}}
+            </div>
+          {{/if}}
+        </section>
+      {{/each}}
+    </main>
+  </body>
+</html>

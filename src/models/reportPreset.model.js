@@ -7,6 +7,8 @@ const reportPresetSchema = new mongoose.Schema(
     name: { type: String, required: true },
     description: { type: String },
     schema: { type: mongoose.Schema.Types.Mixed, required: true },
+    templateHtml: { type: String },
+    templateCss: { type: String },
     sampleReportPath: { type: String },
     tags: { type: mongoose.Schema.Types.Mixed, default: [] },
     isDefault: { type: Boolean, default: false },

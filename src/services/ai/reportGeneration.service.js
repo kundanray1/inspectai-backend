@@ -36,7 +36,27 @@ Generate a complete report with:
 4. An executive summary
 5. Appropriate section narratives
 
+For each schema section:
+- If the section is repeatable or layout.type is "table", return a "rows" array of objects keyed by the schema field keys.
+- Otherwise return a "data" object keyed by the schema field keys.
+
 Return ONLY valid JSON matching the schema structure with all sections filled in.`;
+
+// Expected output shape:
+// {
+//   "title": "...",
+//   "introduction": "...",
+//   "executiveSummary": "...",
+//   "conclusion": "...",
+//   "sections": [
+//     {
+//       "id": "section_id",
+//       "name": "Section Name",
+//       "rows": [ { "field_key": "value" } ], // for repeatable/table sections
+//       "data": { "field_key": "value" }      // for non-repeatable sections
+//     }
+//   ]
+// }
 
 /**
  * Section narrative prompt
@@ -121,12 +141,18 @@ const postProcessReport = async (rawReport, schema, rooms, organizationName) => 
     const generatedSection = rawReport.sections?.find(
       (s) => s.id === schemaSection.id || s.name === schemaSection.name
     );
+    const isTable = Boolean(schemaSection.repeatable) || schemaSection.layout?.type === 'table';
 
     return {
       sectionId: schemaSection.id,
       name: schemaSection.name,
+      description: schemaSection.description,
       order: schemaSection.order,
-      data: generatedSection?.data || {},
+      repeatable: Boolean(schemaSection.repeatable),
+      fields: schemaSection.fields || [],
+      layout: schemaSection.layout,
+      rows: isTable && Array.isArray(generatedSection?.rows) ? generatedSection.rows : [],
+      data: isTable ? {} : generatedSection?.data || {},
       aiNarrative: generatedSection?.aiNarrative || generatedSection?.narrative || '',
     };
   });
@@ -337,4 +363,3 @@ module.exports = {
   generateDefaultIntroduction,
   generateDefaultConclusion,
 };
-
