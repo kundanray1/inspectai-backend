@@ -57,7 +57,7 @@ const ensureDefaultPlans = async () => {
     {
       slug: 'trial',
       name: 'Free Trial',
-      description: 'Evaluate InspectAI with a complimentary starter plan.',
+      description: 'Evaluate Sitewise with a complimentary starter plan.',
       priceMonthly: 0,
       currency: 'usd',
       reportLimit: 1,
@@ -70,7 +70,7 @@ const ensureDefaultPlans = async () => {
     {
       slug: 'pro',
       name: 'Pro',
-      description: 'Unlock full InspectAI automation for fast-moving teams.',
+      description: 'Unlock full Sitewise automation for fast-moving teams.',
       priceMonthly: 25,
       currency: 'usd',
       reportLimit: 20,

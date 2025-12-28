@@ -7,12 +7,7 @@ let io;
 let subClient;
 
 const buildCorsOptions = () => {
-  const origins = [
-    'https://inspectai-8p7.pages.dev',
-    'https://inspectai.pages.dev',
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ];
+  const origins = ['https://sitewise.pages.dev', 'http://localhost:5173', 'http://localhost:3000'];
   
   if (config.frontendUrl && config.frontendUrl !== '*') {
     origins.push(config.frontendUrl);

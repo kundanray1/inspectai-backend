@@ -45,7 +45,7 @@ const getStorage = () => {
 };
 
 /**
- * Storage path helpers for InspectAI
+ * Storage path helpers for Sitewise
  */
 const storagePaths = {
   /**

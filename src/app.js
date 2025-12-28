@@ -54,8 +54,8 @@ const corsOptions = {
     // Allow exact match
     if (origin === config.frontendUrl) return callback(null, true);
     
-    // Allow all Cloudflare Pages domains (inspectai-8p7.pages.dev and *.inspectai-8p7.pages.dev)
-    if (/^https:\/\/([\w-]+\.)?inspectai(-8p7)?\.pages\.dev$/.test(origin)) {
+    // Allow all Cloudflare Pages domains (sitewise.pages.dev and *.sitewise.pages.dev)
+    if (/^https:\/\/([\w-]+\.)?sitewise\.pages\.dev$/.test(origin)) {
       return callback(null, true);
     }
     

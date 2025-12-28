@@ -234,7 +234,7 @@ const handleCheckoutCompleted = async (session) => {
     (planSlug ? await planService.getPlanBySlug(planSlug) : null);
 
   if (!plan) {
-    logger.error({ priceId, planSlug }, 'Unable to resolve InspectAI plan for checkout session');
+    logger.error({ priceId, planSlug }, 'Unable to resolve Sitewise plan for checkout session');
     throw new ApiError(httpStatus.BAD_REQUEST, 'Unable to resolve plan for subscription');
   }
 

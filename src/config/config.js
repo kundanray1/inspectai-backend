@@ -75,11 +75,11 @@ const envVarsSchema = Joi.object()
     CLOUDFLARE_ACCOUNT_ID: Joi.string().description('Cloudflare account ID'),
     CLOUDFLARE_R2_ACCESS_KEY_ID: Joi.string().description('R2 access key ID'),
     CLOUDFLARE_R2_SECRET_ACCESS_KEY: Joi.string().description('R2 secret access key'),
-    CLOUDFLARE_R2_BUCKET_NAME: Joi.string().default('inspectai').description('R2 bucket name'),
+    CLOUDFLARE_R2_BUCKET_NAME: Joi.string().default('sitewise').description('R2 bucket name'),
     CLOUDFLARE_R2_PUBLIC_URL: Joi.string().uri().description('Public URL for R2 bucket (if using custom domain)'),
     STORAGE_PROVIDER: Joi.string().valid('local', 'r2', 's3').default('local').description('Storage provider to use'),
-    INSPECTION_QUEUE_EXCHANGE: Joi.string().default('inspectai.inspection').description('Inspection queue exchange name'),
-    INSPECTION_QUEUE_NAME: Joi.string().default('inspectai.inspection.analysis').description('Inspection queue name'),
+    INSPECTION_QUEUE_EXCHANGE: Joi.string().default('sitewise.inspection').description('Inspection queue exchange name'),
+    INSPECTION_QUEUE_NAME: Joi.string().default('sitewise.inspection.analysis').description('Inspection queue name'),
     INSPECTION_QUEUE_ROUTING_KEY: Joi.string().default('inspection.analysis').description('Inspection queue routing key'),
     INSPECTION_QUEUE_MAX_PENDING: Joi.number()
       .integer()

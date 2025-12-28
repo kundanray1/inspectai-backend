@@ -158,9 +158,9 @@ const listAdminUsers = async ({ email, status, isAdmin, page = 1, limit = 10 }) 
 const getAdminSettings = async () => {
   const setting = await getOrCreateSetting(SETTINGS_GROUP_KEY, {
     branding: {
-      productName: 'InspectAI',
-      supportEmail: 'support@inspectai.app',
-      marketingSite: 'https://inspectai.app',
+      productName: 'Sitewise',
+      supportEmail: 'support@sitewise.app',
+      marketingSite: 'https://sitewise.pages.dev',
     },
     billing: {
       defaultPlan: 'starter',

@@ -184,14 +184,14 @@ const renderReportToPdf = async ({
   const sectionsById = buildSectionsById(sections);
   const data = {
     title: reportContent?.title || schema?.title || 'Inspection Report',
-    organizationName: organization?.name || 'InspectAI',
+    organizationName: organization?.name || 'Sitewise',
     headerMeta: buildHeaderMeta({ inspection, reportMeta }),
     sections,
     sectionsById,
     styling,
     css: templateCss || '',
     meta: {
-      organization: organization?.name || 'InspectAI',
+      organization: organization?.name || 'Sitewise',
       project: reportMeta?.project || '',
       team: reportMeta?.team || '',
       templateId: reportMeta?.templateId || '',

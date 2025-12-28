@@ -1,4 +1,4 @@
-# InspectAI Backend
+# Sitewise Backend
 
 ## Environment Variables
 
@@ -8,7 +8,7 @@ Create a `.env` file in the `backend/` directory. The following keys are require
 # Core
 NODE_ENV=development
 PORT=4000
-MONGODB_URL=mongodb://localhost:27017/inspectai
+MONGODB_URL=mongodb://localhost:27017/sitewise
 JWT_SECRET=change-me
 
 # Frontend + uploads
@@ -19,8 +19,8 @@ UPLOAD_DIR=backend/uploads
 RABBITMQ_URL=amqp://localhost:5672
 RABBITMQ_AUTO_START=true
 RABBITMQ_PREFETCH=5
-INSPECTION_QUEUE_EXCHANGE=inspectai.inspection
-INSPECTION_QUEUE_NAME=inspectai.inspection.analysis
+INSPECTION_QUEUE_EXCHANGE=sitewise.inspection
+INSPECTION_QUEUE_NAME=sitewise.inspection.analysis
 INSPECTION_QUEUE_ROUTING_KEY=inspection.analysis
 INSPECTION_QUEUE_MAX_PENDING=500
 INSPECTION_WORKER_PREFETCH=5

@@ -1,7 +1,7 @@
 {
-  "name": "inspectai-backend",
+  "name": "sitewise-backend",
   "version": "0.2.0",
-  "description": "InspectAI backend built on the node-express-boilerplate foundation",
+  "description": "Sitewise backend built on the node-express-boilerplate foundation",
   "main": "src/index.js",
   "repository": "https://github.com/hagopj13/node-express-boilerplate.git",
   "author": "Hagop Jamkojian <hagopj13@gmail.com>",
