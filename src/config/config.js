@@ -23,6 +23,10 @@ const envVarsSchema = Joi.object()
     SMTP_USERNAME: Joi.string().description('username for email server'),
     SMTP_PASSWORD: Joi.string().description('password for email server'),
     EMAIL_FROM: Joi.string().description('the from field in the emails sent by the app'),
+    EMAIL_PROVIDER: Joi.string().valid('auto', 'smtp', 'ahasend').default('auto').description('Email provider to use'),
+    AHASEND_API_KEY: Joi.string().description('AhaSend API key'),
+    AHASEND_ACCOUNT_ID: Joi.string().description('AhaSend account ID'),
+    AHASEND_BASE_URL: Joi.string().uri().default('https://api.ahasend.com/v2').description('AhaSend API base URL'),
     FRONTEND_URL: Joi.string().uri().description('Allowed frontend origin for CORS'),
     UPLOAD_DIR: Joi.string().default('backend/uploads').description('Relative path for uploads storage'),
     SUPER_ADMIN_EMAIL: Joi.string().email().default('raykundan57@gmail.com').description('Initial super admin email'),
@@ -117,17 +121,28 @@ module.exports = {
     verifyEmailExpirationMinutes: envVars.JWT_VERIFY_EMAIL_EXPIRATION_MINUTES,
   },
   email: {
+    provider:
+      envVars.EMAIL_PROVIDER === 'auto'
+        ? envVars.AHASEND_API_KEY && envVars.AHASEND_ACCOUNT_ID
+          ? 'ahasend'
+          : 'smtp'
+        : envVars.EMAIL_PROVIDER,
     smtp: {
       host: envVars.SMTP_HOST,
       port: envVars.SMTP_PORT,
       requireTLS: true,
-
+      
       auth: {
         user: envVars.SMTP_USERNAME,
         pass: envVars.SMTP_PASSWORD,
       },
     },
     from: envVars.EMAIL_FROM,
+    ahasend: {
+      apiKey: envVars.AHASEND_API_KEY,
+      accountId: envVars.AHASEND_ACCOUNT_ID,
+      baseUrl: envVars.AHASEND_BASE_URL,
+    },
   },
   frontendUrl: envVars.FRONTEND_URL || '*',
   uploads: {
