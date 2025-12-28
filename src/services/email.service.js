@@ -10,7 +10,8 @@ if (config.env !== 'test') {
     .then(() => logger.info('Connected to email server'))
     .catch((e) => {
       logger.warn(e)
-      logger.warn(e.code)
+      logger.warn(e?.code)
+      logger.warn(e?.responseCode)
 
       logger.warn(config.email.smtp)
 
