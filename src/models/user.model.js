@@ -83,6 +83,30 @@ const userSchema = mongoose.Schema(
         type: Date,
       },
     },
+    onboarding: {
+      completed: {
+        type: Boolean,
+        default: false,
+      },
+      step: {
+        type: Number,
+        default: 0,
+      },
+      version: {
+        type: Number,
+        default: 1,
+      },
+      lastInspectionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Inspection',
+      },
+      lastSeenAt: {
+        type: Date,
+      },
+      completedAt: {
+        type: Date,
+      },
+    },
     // Agent profile for home inspectors
     agentProfile: {
       licenseNumber: {

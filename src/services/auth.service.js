@@ -149,6 +149,7 @@ const mapUserToDto = (user) => ({
   role: user.role,
   organizationId: user.organizationId,
   lastActiveAt: user.lastActiveAt ? user.lastActiveAt : undefined,
+  onboarding: user.onboarding,
 });
 
 module.exports = {

@@ -14,4 +14,12 @@ router.put(
   accountController.updateNotificationPreferences
 );
 
+router.get('/onboarding', auth(), accountController.getOnboarding);
+router.patch(
+  '/onboarding',
+  auth(),
+  validate(accountValidation.updateOnboarding),
+  accountController.updateOnboarding
+);
+
 module.exports = router;

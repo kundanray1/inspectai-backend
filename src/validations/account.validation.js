@@ -12,6 +12,20 @@ const updatePreferences = {
     .required(),
 };
 
+const updateOnboarding = {
+  body: Joi.object()
+    .keys({
+      completed: Joi.boolean(),
+      step: Joi.number().integer().min(0),
+      version: Joi.number().integer().min(1),
+      lastInspectionId: Joi.string().hex().length(24),
+      lastSeenAt: Joi.date().iso(),
+    })
+    .min(1)
+    .required(),
+};
+
 module.exports = {
   updatePreferences,
+  updateOnboarding,
 };
